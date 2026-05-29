@@ -1,0 +1,124 @@
+package config
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// ConfigPath returns the path to the config file (~/.patent-cli.toml).
+func ConfigPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".patent-cli.toml")
+}
+
+type ProxyConfig struct {
+	HTTPS string
+	HTTP  string
+}
+
+type SSLConfig struct {
+	CABundle string
+}
+
+type Config struct {
+	Proxy ProxyConfig
+	SSL   SSLConfig
+}
+
+type RequestOptions struct {
+	Proxies  map[string]string
+	CABundle string
+}
+
+// Load reads ~/.patent-cli.toml; returns empty Config if file not found.
+func Load() (Config, error) {
+	path := ConfigPath()
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return Config{}, nil
+	}
+	if err != nil {
+		return Config{}, err
+	}
+	return parseToml(string(data)), nil
+}
+
+// Save writes config to ~/.patent-cli.toml.
+func Save(cfg Config) error {
+	return os.WriteFile(ConfigPath(), []byte(dumpToml(cfg)), 0644)
+}
+
+// GetRequestOptions extracts HTTP proxy/TLS options from Config.
+func GetRequestOptions(cfg Config) RequestOptions {
+	opts := RequestOptions{Proxies: make(map[string]string)}
+	if cfg.Proxy.HTTPS != "" {
+		opts.Proxies["https"] = cfg.Proxy.HTTPS
+	}
+	if cfg.Proxy.HTTP != "" {
+		opts.Proxies["http"] = cfg.Proxy.HTTP
+	}
+	opts.CABundle = cfg.SSL.CABundle
+	return opts
+}
+
+// parseToml is a minimal TOML parser for the two-section config format.
+func parseToml(s string) Config {
+	var cfg Config
+	scanner := bufio.NewScanner(strings.NewReader(s))
+	var section string
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			section = strings.ToLower(line[1 : len(line)-1])
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		val := strings.TrimSpace(parts[1])
+		val = strings.Trim(val, `"`)
+		switch section {
+		case "proxy":
+			switch key {
+			case "https":
+				cfg.Proxy.HTTPS = val
+			case "http":
+				cfg.Proxy.HTTP = val
+			}
+		case "ssl":
+			if key == "ca_bundle" {
+				cfg.SSL.CABundle = val
+			}
+		}
+	}
+	return cfg
+}
+
+// dumpToml serializes Config to TOML text.
+func dumpToml(cfg Config) string {
+	var sb strings.Builder
+	if cfg.Proxy.HTTPS != "" || cfg.Proxy.HTTP != "" {
+		fmt.Fprintln(&sb, "[proxy]")
+		if cfg.Proxy.HTTPS != "" {
+			fmt.Fprintf(&sb, "https = %q\n", cfg.Proxy.HTTPS)
+		}
+		if cfg.Proxy.HTTP != "" {
+			fmt.Fprintf(&sb, "http = %q\n", cfg.Proxy.HTTP)
+		}
+		fmt.Fprintln(&sb)
+	}
+	if cfg.SSL.CABundle != "" {
+		fmt.Fprintln(&sb, "[ssl]")
+		fmt.Fprintf(&sb, "ca_bundle = %q\n", cfg.SSL.CABundle)
+		fmt.Fprintln(&sb)
+	}
+	return sb.String()
+}
