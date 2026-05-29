@@ -71,6 +71,9 @@ func logf(format string, args ...interface{}) {
 func loadRequestOpts(timeout time.Duration) fetcher.Options {
 	cfg, _ := config.Load()
 	reqOpts := config.GetRequestOptions(cfg)
+	if cfg.Request.DelayMs > 0 {
+		time.Sleep(time.Duration(cfg.Request.DelayMs) * time.Millisecond)
+	}
 	return fetcher.Options{
 		Timeout:  timeout,
 		Proxies:  reqOpts.Proxies,
@@ -359,12 +362,26 @@ Existing values are shown as defaults.`,
 			httpProxy := prompt(scanner, "HTTP  proxy URL", existing.Proxy.HTTP)
 			caBundle := prompt(scanner, "CA bundle file path", existing.SSL.CABundle)
 
-			newCfg := config.Config{
-				Proxy: config.ProxyConfig{HTTPS: httpsProxy, HTTP: httpProxy},
-				SSL:   config.SSLConfig{CABundle: caBundle},
+			delayDefault := ""
+			if existing.Request.DelayMs > 0 {
+				delayDefault = fmt.Sprintf("%d", existing.Request.DelayMs)
+			}
+			delayStr := prompt(scanner, "Request delay in ms (0 = disabled)", delayDefault)
+			delayMs := 0
+			if delayStr != "" {
+				fmt.Sscanf(delayStr, "%d", &delayMs)
+				if delayMs < 0 {
+					delayMs = 0
+				}
 			}
 
-			if httpsProxy == "" && httpProxy == "" && caBundle == "" {
+			newCfg := config.Config{
+				Proxy:   config.ProxyConfig{HTTPS: httpsProxy, HTTP: httpProxy},
+				SSL:     config.SSLConfig{CABundle: caBundle},
+				Request: config.RequestConfig{DelayMs: delayMs},
+			}
+
+			if httpsProxy == "" && httpProxy == "" && caBundle == "" && delayMs == 0 {
 				fmt.Println("\nNo values entered — config file not saved.")
 				return nil
 			}
@@ -382,6 +399,9 @@ Existing values are shown as defaults.`,
 			}
 			if caBundle != "" {
 				fmt.Println("  ssl.ca_bundle =", caBundle)
+			}
+			if delayMs > 0 {
+				fmt.Printf("  request.delay_ms = %d\n", delayMs)
 			}
 			return nil
 		},

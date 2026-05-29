@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -23,9 +24,14 @@ type SSLConfig struct {
 	CABundle string
 }
 
+type RequestConfig struct {
+	DelayMs int
+}
+
 type Config struct {
-	Proxy ProxyConfig
-	SSL   SSLConfig
+	Proxy   ProxyConfig
+	SSL     SSLConfig
+	Request RequestConfig
 }
 
 type RequestOptions struct {
@@ -97,6 +103,12 @@ func parseToml(s string) Config {
 			if key == "ca_bundle" {
 				cfg.SSL.CABundle = val
 			}
+		case "request":
+			if key == "delay_ms" {
+				if n, err := strconv.Atoi(val); err == nil && n >= 0 {
+					cfg.Request.DelayMs = n
+				}
+			}
 		}
 	}
 	return cfg
@@ -118,6 +130,11 @@ func dumpToml(cfg Config) string {
 	if cfg.SSL.CABundle != "" {
 		fmt.Fprintln(&sb, "[ssl]")
 		fmt.Fprintf(&sb, "ca_bundle = %q\n", cfg.SSL.CABundle)
+		fmt.Fprintln(&sb)
+	}
+	if cfg.Request.DelayMs > 0 {
+		fmt.Fprintln(&sb, "[request]")
+		fmt.Fprintf(&sb, "delay_ms = %d\n", cfg.Request.DelayMs)
 		fmt.Fprintln(&sb)
 	}
 	return sb.String()
