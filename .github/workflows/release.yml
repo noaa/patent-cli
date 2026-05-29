@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: macOS-arm64
+            runner: macos-latest
+            goos: darwin
+            goarch: arm64
+            asset: gp-cli-darwin-arm64
+          - os: macOS-amd64
+            runner: macos-latest
+            goos: darwin
+            goarch: amd64
+            asset: gp-cli-darwin-amd64
+          - os: Linux-amd64
+            runner: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            asset: gp-cli-linux-amd64
+          - os: Windows-amd64
+            runner: ubuntu-latest
+            goos: windows
+            goarch: amd64
+            asset: gp-cli-windows-amd64.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -ldflags "-X main.version=${{ github.ref_name }}" \
+            -o ${{ matrix.asset }} ./cmd/gp-cli/
+
+      - name: Package (non-Windows)
+        if: matrix.goos != 'windows'
+        run: |
+          tar czf ${{ matrix.asset }}.tar.gz ${{ matrix.asset }}
+
+      - name: Package (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          zip ${{ matrix.asset }}.zip ${{ matrix.asset }}
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ matrix.asset }}.tar.gz
+            ${{ matrix.asset }}.zip
+          fail_on_unmatched_files: false
