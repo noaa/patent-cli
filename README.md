@@ -1,89 +1,91 @@
 # gp-cli — Google Patents CLI
 
-Google Patents에서 특허 메타데이터를 조회하고, PDF·도면 이미지를 다운로드하는 커맨드라인 도구입니다.
+A command-line tool to query patent metadata and download PDFs and drawing images from Google Patents.
+
+> 한국어 문서: [README.ko.md](README.ko.md)
 
 ---
 
-## 설치
+## Installation
 
 ### macOS
 
-터미널(Terminal)을 열고 아래 명령어를 복사·붙여넣기 하세요:
+Open Terminal and run:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/noaa/patent-cli/main/install.sh | sh
 ```
 
-설치 후 터미널을 **새로 열면** `gp-cli` 명령을 바로 사용할 수 있습니다.
+Open a **new terminal window** after installation to use the `gp-cli` command.
 
 ---
 
 ### Windows
 
-**PowerShell**을 열고 (시작 메뉴 → "PowerShell" 검색) 아래 명령어를 붙여넣기 하세요:
+Open **PowerShell** (Start menu → search "PowerShell") and run:
 
 ```powershell
 irm https://raw.githubusercontent.com/noaa/patent-cli/main/install.ps1 | iex
 ```
 
-설치 후 PowerShell을 **새로 열면** `gp-cli` 명령을 바로 사용할 수 있습니다.
+Open a **new PowerShell window** after installation to use the `gp-cli` command.
 
 ---
 
-### 수동 설치 (직접 다운로드)
+### Manual Installation
 
-자동 설치가 안 될 경우 [Releases 페이지](https://github.com/noaa/patent-cli/releases)에서 직접 다운로드하세요:
+If the automatic installer doesn't work, download the binary directly from the [Releases page](https://github.com/noaa/patent-cli/releases):
 
-| OS | 파일 |
+| OS | File |
 |----|------|
 | macOS (M1/M2/M3) | `gp-cli-darwin-arm64.tar.gz` |
 | macOS (Intel) | `gp-cli-darwin-amd64.tar.gz` |
 | Windows | `gp-cli-windows-amd64.exe.zip` |
 | Linux | `gp-cli-linux-amd64.tar.gz` |
 
-압축 해제 후 `gp-cli`(또는 `gp-cli.exe`)를 원하는 폴더에 넣으면 됩니다.
+Extract the archive and place `gp-cli` (or `gp-cli.exe`) anywhere in your `PATH`.
 
 ---
 
-## 사용법
+## Usage
 
-### 특허 메타데이터 조회
+### Look Up Patent Metadata
 
 ```sh
-# JSON 형식 (기본)
+# JSON output (default)
 gp-cli lookup US12514139B2
 
-# 사람이 읽기 편한 텍스트 형식
+# Human-readable text
 gp-cli lookup US12514139B2 --format text
 
-# 특정 필드만 출력
+# Select specific fields
 gp-cli lookup US12514139B2 --fields title,assignee,filing_date
 
-# 제목만 출력
+# Single field
 gp-cli lookup US12514139B2 --field title
 
-# WO/PCT 특허
+# WO/PCT patent
 gp-cli lookup WO2022123456A1
 
-# KR 특허
+# KR patent
 gp-cli lookup KR102355140B1
 ```
 
-### PDF 다운로드
+### Download PDF
 
 ```sh
 gp-cli download US12514139B2
 gp-cli download US12514139B2 --output-dir ./pdfs
 ```
 
-### 도면 이미지 다운로드
+### Download Drawing Images
 
 ```sh
 gp-cli images US12514139B2
 gp-cli images US12514139B2 --output-dir ./figures
 ```
 
-### 사용 가능한 필드 목록
+### List Available Fields
 
 ```sh
 gp-cli fields
@@ -91,30 +93,30 @@ gp-cli fields
 
 ---
 
-## 출력 형식
+## Output Formats
 
-| 옵션 | 설명 |
-|------|------|
-| `--format json` | JSON (기본값) |
-| `--format text` | 레이블 + 값 텍스트 |
-| `--format tsv` | 탭 구분 (Excel 붙여넣기용) |
-| `--output-dir DIR` | 파일로 저장 |
+| Option | Description |
+|--------|-------------|
+| `--format json` | JSON (default) |
+| `--format text` | Label + value text |
+| `--format tsv` | Tab-separated (paste into Excel) |
+| `--output-dir DIR` | Save output to a file |
 
 ---
 
-## 설정 (프록시 / CA 인증서)
+## Configuration (Proxy / CA Certificate)
 
-회사 내부망에서 프록시를 사용하는 경우:
+For corporate networks with a proxy:
 
 ```sh
 gp-cli configure
 ```
 
-설정 파일 위치: `~/.patent-cli.toml`
+Config file location: `~/.patent-cli.toml`
 
 ---
 
-## 버전 확인
+## Version
 
 ```sh
 gp-cli --version
