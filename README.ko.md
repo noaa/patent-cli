@@ -22,13 +22,21 @@ curl -fsSL https://raw.githubusercontent.com/noaa/patent-cli/main/install.sh | s
 
 ### Windows
 
-**PowerShell**을 열고 (시작 메뉴 → "PowerShell" 검색) 아래 명령어를 붙여넣기 하세요:
+**방법 A — PowerShell** (시작 메뉴 → "PowerShell" 검색):
 
 ```powershell
 irm https://raw.githubusercontent.com/noaa/patent-cli/main/install.ps1 | iex
 ```
 
-설치 후 PowerShell을 **새로 열면** `gp-cli` 명령을 바로 사용할 수 있습니다.
+**방법 B — 명령 프롬프트(CMD)** (시작 메뉴 → "cmd" 검색):
+
+```cmd
+curl -fsSL https://raw.githubusercontent.com/noaa/patent-cli/main/install.bat -o "%TEMP%\gp-cli-install.bat" && "%TEMP%\gp-cli-install.bat"
+```
+
+> Windows 10 build 1803 이상이 필요합니다 (curl·tar 내장).
+
+설치 후 터미널을 **새로 열면** `gp-cli` 명령을 바로 사용할 수 있습니다.
 
 ---
 

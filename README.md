@@ -22,13 +22,21 @@ Open a **new terminal window** after installation to use the `gp-cli` command.
 
 ### Windows
 
-Open **PowerShell** (Start menu → search "PowerShell") and run:
+**Option A — PowerShell** (Start menu → search "PowerShell"):
 
 ```powershell
 irm https://raw.githubusercontent.com/noaa/patent-cli/main/install.ps1 | iex
 ```
 
-Open a **new PowerShell window** after installation to use the `gp-cli` command.
+**Option B — Command Prompt (CMD)** (Start menu → search "cmd"):
+
+```cmd
+curl -fsSL https://raw.githubusercontent.com/noaa/patent-cli/main/install.bat -o "%TEMP%\gp-cli-install.bat" && "%TEMP%\gp-cli-install.bat"
+```
+
+> Requires Windows 10 build 1803 or later (curl and tar are built in).
+
+Open a **new terminal window** after installation to use the `gp-cli` command.
 
 ---
 
