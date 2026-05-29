@@ -11,6 +11,7 @@ import (
 	"github.com/area99/patent-cli/internal/fetcher"
 	"github.com/area99/patent-cli/internal/formatter"
 	"github.com/area99/patent-cli/internal/parser"
+	"github.com/area99/patent-cli/internal/updater"
 	"github.com/spf13/cobra"
 )
 
@@ -52,6 +53,7 @@ Quick start:
 		imagesCmd(),
 		fieldsCmd(),
 		configureCmd(),
+		updateCmd(),
 	)
 
 	if err := root.Execute(); err != nil {
@@ -385,6 +387,56 @@ Existing values are shown as defaults.`,
 		},
 	}
 }
+
+// ── update ────────────────────────────────────────────────────────────────────
+
+func updateCmd() *cobra.Command {
+	var checkOnly bool
+
+	cmd := &cobra.Command{
+		Use:   "update",
+		Short: "Check for a newer release and update gp-cli in-place",
+		Long: `Check GitHub for a newer release of gp-cli and, if found, download and
+replace the running binary in-place.
+
+Examples:
+  gp-cli update           # check and update automatically
+  gp-cli update --check   # only print version info, do not update`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Fprintf(os.Stderr, "Current version: %s\n", version)
+			fmt.Fprintf(os.Stderr, "Checking for updates...\n")
+
+			latestTag, err := updater.LatestTag()
+			if err != nil {
+				return fmt.Errorf("could not reach GitHub: %w", err)
+			}
+
+			if !updater.HasUpdate(version, latestTag) {
+				fmt.Fprintf(os.Stderr, "Already up to date (%s).\n", version)
+				return nil
+			}
+
+			fmt.Fprintf(os.Stderr, "New version available: %s\n", latestTag)
+
+			if checkOnly {
+				fmt.Fprintf(os.Stderr, "Run 'gp-cli update' (without --check) to install.\n")
+				return nil
+			}
+
+			if err := updater.Do(latestTag); err != nil {
+				return fmt.Errorf("update failed: %w", err)
+			}
+
+			fmt.Fprintf(os.Stderr, "Updated to %s. Restart your terminal if needed.\n", latestTag)
+			return nil
+		},
+	}
+
+	cmd.Flags().BoolVar(&checkOnly, "check", false, "Only check for a new version; do not download or install")
+	return cmd
+}
+
+// ── configure ─────────────────────────────────────────────────────────────────
 
 func prompt(scanner *bufio.Scanner, label, defaultVal string) string {
 	if defaultVal != "" {
