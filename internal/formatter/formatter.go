@@ -196,10 +196,11 @@ func SelectFields(dm *DataMap, fields []string) *DataMap {
 }
 
 // Render converts a DataMap to the requested format string.
-func Render(dm *DataMap, fmt_ string) string {
+// For the json format, minify controls whether output is compact or indented.
+func Render(dm *DataMap, fmt_ string, minify bool) string {
 	switch fmt_ {
 	case "json":
-		return renderJSON(dm)
+		return renderJSON(dm, minify)
 	case "text":
 		return renderText(dm)
 	case "tsv":
@@ -208,24 +209,21 @@ func Render(dm *DataMap, fmt_ string) string {
 	return ""
 }
 
-// renderJSON produces indented JSON while preserving key insertion order.
-func renderJSON(dm *DataMap) string {
-	var sb strings.Builder
-	sb.WriteString("{\n")
-	for i, k := range dm.keys {
-		kb, _ := json.Marshal(k)
-		vb, _ := json.MarshalIndent(dm.values[k], "  ", "  ")
-		sb.WriteString("  ")
-		sb.Write(kb)
-		sb.WriteString(": ")
-		sb.Write(vb)
-		if i < len(dm.keys)-1 {
-			sb.WriteString(",")
-		}
-		sb.WriteString("\n")
+// renderJSON wraps the DataMap in a {ok, results} envelope.
+func renderJSON(dm *DataMap, minify bool) string {
+	type envelope struct {
+		OK      bool            `json:"ok"`
+		Results json.RawMessage `json:"results"`
 	}
-	sb.WriteString("}")
-	return sb.String()
+	inner, _ := dm.MarshalJSON()
+	env := envelope{OK: true, Results: json.RawMessage(inner)}
+	var b []byte
+	if minify {
+		b, _ = json.Marshal(env)
+	} else {
+		b, _ = json.MarshalIndent(env, "", "  ")
+	}
+	return string(b)
 }
 
 func renderText(dm *DataMap) string {
@@ -495,7 +493,7 @@ func SaveToDir(dm *DataMap, fmt_, outputDir, patentNumber string) (string, error
 	}
 	path := filepath.Join(outputDir, patentNumber+ext)
 
-	content := Render(dm, fmt_)
+	content := Render(dm, fmt_, false)
 
 	// Use UTF-8 BOM for text/tsv (Excel/Notepad compatibility)
 	var data []byte
@@ -511,11 +509,19 @@ func SaveToDir(dm *DataMap, fmt_, outputDir, patentNumber string) (string, error
 	return path, nil
 }
 
-// PrintError writes a JSON error message to stdout.
-func PrintError(message, patentNumber string) {
-	b, _ := json.Marshal(map[string]string{
-		"error":         message,
-		"patent_number": patentNumber,
-	})
+// PrintErrorJSON writes a structured JSON error envelope to stdout.
+func PrintErrorJSON(errType, message string) {
+	type errInfo struct {
+		Type    string `json:"type"`
+		Message string `json:"message"`
+	}
+	type envelope struct {
+		OK    bool    `json:"ok"`
+		Error errInfo `json:"error"`
+	}
+	b, _ := json.MarshalIndent(envelope{
+		OK:    false,
+		Error: errInfo{Type: errType, Message: message},
+	}, "", "  ")
 	fmt.Println(string(b))
 }

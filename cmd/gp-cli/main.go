@@ -17,7 +17,18 @@ import (
 
 const version = "0.1.0"
 
-var verbose bool
+const (
+	exitOK           = 0
+	exitGeneralError = 1
+	exitNotFound     = 4
+	exitServerError  = 6
+)
+
+var (
+	verbose bool
+	quiet   bool
+	minify  bool
+)
 
 func main() {
 	root := &cobra.Command{
@@ -46,6 +57,8 @@ Quick start:
 	}
 
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Print progress and debug logs to stderr")
+	root.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Suppress progress messages on stderr")
+	root.PersistentFlags().BoolVar(&minify, "minify", false, "Compact JSON output (no indentation)")
 
 	root.AddCommand(
 		lookupCmd(),
@@ -66,6 +79,17 @@ func logf(format string, args ...interface{}) {
 	if verbose {
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
+}
+
+func progressf(format string, args ...interface{}) {
+	if !quiet {
+		fmt.Fprintf(os.Stderr, format+"\n", args...)
+	}
+}
+
+func exitError(errType, message string, code int) {
+	formatter.PrintErrorJSON(errType, message)
+	os.Exit(code)
 }
 
 func loadRequestOpts(timeout time.Duration) fetcher.Options {
@@ -115,11 +139,10 @@ Examples:
 			if err != nil {
 				switch err.(type) {
 				case *fetcher.PatentNotFoundError:
-					formatter.PrintError("Patent not found", patentNumber)
+					exitError("NOT_FOUND", "patent not found: "+patentNumber, exitNotFound)
 				default:
-					formatter.PrintError(fmt.Sprintf("Network error: %v", err), patentNumber)
+					exitError("NETWORK_ERROR", fmt.Sprintf("network error: %v", err), exitGeneralError)
 				}
-				os.Exit(1)
 			}
 
 			data := parser.ParseAll(html)
@@ -130,7 +153,7 @@ Examples:
 				v, ok := dm.Get(singleField)
 				if !ok {
 					fmt.Fprintf(os.Stderr, "Unknown field: %q. Run 'gp-cli fields' for available fields.\n", singleField)
-					os.Exit(1)
+					os.Exit(exitGeneralError)
 				}
 				formatter.PrintField(v)
 				return nil
@@ -150,21 +173,21 @@ Examples:
 				for _, f := range fieldsList {
 					if _, ok := dm.Get(f); !ok {
 						fmt.Fprintf(os.Stderr, "Unknown field: %q. Run 'gp-cli fields' for available fields.\n", f)
-						os.Exit(1)
+						os.Exit(exitGeneralError)
 					}
 				}
 			}
 
 			out := formatter.SelectFields(dm, fieldsList)
-			fmt.Println(formatter.Render(out, fmt_))
+			fmt.Println(formatter.Render(out, fmt_, minify))
 
 			if outputDir != "" {
 				saved, err := formatter.SaveToDir(out, fmt_, outputDir, patentNumber)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Save error: %v\n", err)
-					os.Exit(1)
+					os.Exit(exitGeneralError)
 				}
-				fmt.Fprintf(os.Stderr, "Saved: %s\n", saved)
+				progressf("Saved: %s", saved)
 			}
 			return nil
 		},
@@ -203,18 +226,16 @@ Examples:
 			if err != nil {
 				switch err.(type) {
 				case *fetcher.PatentNotFoundError:
-					formatter.PrintError("Patent not found", patentNumber)
+					exitError("NOT_FOUND", "patent not found: "+patentNumber, exitNotFound)
 				default:
-					formatter.PrintError(fmt.Sprintf("Network error: %v", err), patentNumber)
+					exitError("NETWORK_ERROR", fmt.Sprintf("network error: %v", err), exitGeneralError)
 				}
-				os.Exit(1)
 			}
 
 			data := parser.ParseAll(html)
 			pdfURL := data.PDFURL
 			if pdfURL == "" {
-				fmt.Fprintln(os.Stderr, "Error: PDF link not found for this patent.")
-				os.Exit(1)
+				exitError("NOT_FOUND", "PDF link not found for: "+patentNumber, exitNotFound)
 			}
 
 			pubNumber := data.PublicationNumber
@@ -224,18 +245,16 @@ Examples:
 			filename := pubNumber + ".pdf"
 
 			if err := os.MkdirAll(outputDir, 0755); err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating directory: %v\n", err)
-				os.Exit(1)
+				exitError("ERROR", fmt.Sprintf("failed to create directory: %v", err), exitGeneralError)
 			}
 			dest := outputDir + "/" + filename
 
 			logf("PDF URL: %s", pdfURL)
-			fmt.Fprintf(os.Stderr, "Downloading: %s\n", pdfURL)
+			progressf("Downloading: %s", pdfURL)
 
 			dlOpts := loadRequestOpts(time.Duration(timeout) * time.Second)
 			if err := fetcher.FetchBinary(pdfURL, dest, dlOpts); err != nil {
-				formatter.PrintError(fmt.Sprintf("PDF download failed: %v", err), patentNumber)
-				os.Exit(1)
+				exitError("ERROR", fmt.Sprintf("PDF download failed: %v", err), exitGeneralError)
 			}
 
 			fmt.Println("Saved:", dest)
@@ -274,11 +293,10 @@ Examples:
 			if err != nil {
 				switch err.(type) {
 				case *fetcher.PatentNotFoundError:
-					formatter.PrintError("Patent not found", patentNumber)
+					exitError("NOT_FOUND", "patent not found: "+patentNumber, exitNotFound)
 				default:
-					formatter.PrintError(fmt.Sprintf("Network error: %v", err), patentNumber)
+					exitError("NETWORK_ERROR", fmt.Sprintf("network error: %v", err), exitGeneralError)
 				}
-				os.Exit(1)
 			}
 
 			data := parser.ParseAll(html)
@@ -289,23 +307,21 @@ Examples:
 
 			urls := parser.ParseImageURLs(html)
 			if len(urls) == 0 {
-				fmt.Fprintln(os.Stderr, "No figure images found.")
-				os.Exit(1)
+				exitError("NOT_FOUND", "no figure images found for: "+patentNumber, exitNotFound)
 			}
 
 			if err := os.MkdirAll(outputDir, 0755); err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating directory: %v\n", err)
-				os.Exit(1)
+				exitError("ERROR", fmt.Sprintf("failed to create directory: %v", err), exitGeneralError)
 			}
 
-			fmt.Fprintf(os.Stderr, "Found %d figure image(s) for %s.\n", len(urls), pubNumber)
+			progressf("Found %d figure image(s) for %s.", len(urls), pubNumber)
 
 			dlOpts := loadRequestOpts(time.Duration(timeout) * time.Second)
 			for i, imgURL := range urls {
 				filename := fmt.Sprintf("fig%02d.png", i+1)
 				dest := outputDir + "/" + filename
 				logf("Image URL: %s", imgURL)
-				fmt.Fprintf(os.Stderr, "  [%d/%d] %s\n", i+1, len(urls), filename)
+				progressf("  [%d/%d] %s", i+1, len(urls), filename)
 
 				if err := fetcher.FetchBinary(imgURL, dest, dlOpts); err != nil {
 					fmt.Fprintf(os.Stderr, "  Warning: failed to download image %d: %v\n", i+1, err)

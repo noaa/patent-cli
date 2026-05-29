@@ -15,6 +15,9 @@ import (
 
 const baseURL = "https://patents.google.com/patent"
 
+const retryWait429 = 5 * time.Second
+const maxRetries = 3
+
 var pub6DigitRE = regexp.MustCompile(`^(US)(\d{4})(\d{6})([A-Z]\d*)?$`)
 var nonAlphanumRE = regexp.MustCompile(`[^A-Z0-9]`)
 
@@ -93,17 +96,27 @@ func get(targetURL string, opts Options) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("GET", targetURL, nil)
-	if err != nil {
-		return nil, &FetchError{Message: err.Error()}
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; patent-cli/1.0)")
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, &FetchError{Message: err.Error()}
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		req, err := http.NewRequest("GET", targetURL, nil)
+		if err != nil {
+			return nil, &FetchError{Message: err.Error()}
+		}
+		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; patent-cli/1.0)")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, &FetchError{Message: err.Error()}
+		}
+
+		if resp.StatusCode == 429 && attempt < maxRetries {
+			resp.Body.Close()
+			time.Sleep(retryWait429)
+			continue
+		}
+		return resp, nil
 	}
-	return resp, nil
+	return nil, &FetchError{Message: "max retries exceeded"}
 }
 
 // FetchHTML fetches the Google Patents page and returns its HTML.
