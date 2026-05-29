@@ -72,6 +72,12 @@ gp-cli lookup US12514139B2 --fields title,assignee,filing_date
 # Single field
 gp-cli lookup US12514139B2 --field title
 
+# Compact JSON (no indentation)
+gp-cli lookup US12514139B2 --minify
+
+# Suppress progress messages (useful in scripts)
+gp-cli lookup US12514139B2 --quiet
+
 # WO/PCT patent
 gp-cli lookup WO2022123456A1
 
@@ -105,10 +111,19 @@ gp-cli fields
 
 | Option | Description |
 |--------|-------------|
-| `--format json` | JSON (default) |
+| `--format json` | JSON (default) — wrapped in `{"ok": true, "results": {...}}` |
 | `--format text` | Label + value text |
 | `--format tsv` | Tab-separated (paste into Excel) |
 | `--output-dir DIR` | Save output to a file |
+| `--minify` | Compact JSON output (no indentation) |
+
+## Global Flags
+
+| Flag | Description |
+|------|-------------|
+| `--quiet`, `-q` | Suppress progress messages on stderr |
+| `--minify` | Compact JSON output (no indentation) |
+| `--verbose`, `-v` | Print debug logs to stderr |
 
 ---
 

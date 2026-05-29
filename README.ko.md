@@ -72,6 +72,12 @@ gp-cli lookup US12514139B2 --fields title,assignee,filing_date
 # 제목만 출력
 gp-cli lookup US12514139B2 --field title
 
+# JSON 한 줄 출력 (들여쓰기 없음)
+gp-cli lookup US12514139B2 --minify
+
+# 진행 메시지 억제 (스크립트에서 유용)
+gp-cli lookup US12514139B2 --quiet
+
 # WO/PCT 특허
 gp-cli lookup WO2022123456A1
 
@@ -105,10 +111,19 @@ gp-cli fields
 
 | 옵션 | 설명 |
 |------|------|
-| `--format json` | JSON (기본값) |
+| `--format json` | JSON (기본값) — `{"ok": true, "results": {...}}` 형태로 출력 |
 | `--format text` | 레이블 + 값 텍스트 |
 | `--format tsv` | 탭 구분 (Excel 붙여넣기용) |
 | `--output-dir DIR` | 파일로 저장 |
+| `--minify` | JSON 한 줄 출력 (들여쓰기 없음) |
+
+## 전역 플래그
+
+| 플래그 | 설명 |
+|--------|------|
+| `--quiet`, `-q` | stderr 진행 메시지 억제 (스크립트용) |
+| `--minify` | JSON 한 줄 출력 (들여쓰기 없음) |
+| `--verbose`, `-v` | 디버그 로그를 stderr에 출력 |
 
 ---
 
