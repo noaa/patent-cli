@@ -78,6 +78,12 @@ gp-cli lookup US12514139B2 --minify
 # 진행 메시지 억제 (스크립트에서 유용)
 gp-cli lookup US12514139B2 --quiet
 
+# 기계번역 영문 버전으로 조회
+gp-cli lookup KR102355140B1 --language en
+
+# 구조화된 청구항·설명 (opt-in 필드)
+gp-cli lookup US12514139B2 --fields claims_structured,description_structured
+
 # WO/PCT 특허
 gp-cli lookup WO2022123456A1
 
@@ -124,6 +130,22 @@ gp-cli fields
 | `--quiet`, `-q` | stderr 진행 메시지 억제 (스크립트용) |
 | `--minify` | JSON 한 줄 출력 (들여쓰기 없음) |
 | `--verbose`, `-v` | 디버그 로그를 stderr에 출력 |
+| `--language LANG` | Google 기계번역 페이지로 조회 (예: `en`). 비영어권 특허 영문 조회에 유용. |
+
+### Opt-in 구조화 필드
+
+기본 출력에 포함되지 않으며, `--field` 또는 `--fields`로 명시적으로 요청해야 합니다:
+
+| 필드 | 설명 |
+|------|------|
+| `claims_structured` | 청구항을 `{"number": "1", "text": "…"}` 객체 배열로 반환 |
+| `description_structured` | 설명 단락을 `{"number": "1", "id": "…", "text": "…"}` 객체 배열로 반환 |
+
+```sh
+gp-cli lookup US12514139B2 --fields claims_structured
+gp-cli lookup US12514139B2 --fields claims_structured,description_structured
+gp-cli fields   # opt-in 필드 포함 전체 필드 목록 확인
+```
 
 ---
 

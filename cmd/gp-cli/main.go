@@ -92,6 +92,20 @@ func exitError(errType, message string, code int) {
 	os.Exit(code)
 }
 
+func needsStructured(single string, fields []string) bool {
+	for _, name := range formatter.StructuredFieldNames {
+		if single == name {
+			return true
+		}
+		for _, f := range fields {
+			if f == name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func loadRequestOpts(timeout time.Duration) fetcher.Options {
 	cfg, _ := config.Load()
 	reqOpts := config.GetRequestOptions(cfg)
@@ -114,6 +128,7 @@ func lookupCmd() *cobra.Command {
 		multiFields []string
 		timeout     int
 		outputDir   string
+		language    string
 	)
 
 	cmd := &cobra.Command{
@@ -135,11 +150,14 @@ Examples:
 			logf("lookup: %s", patentNumber)
 
 			opts := loadRequestOpts(time.Duration(timeout) * time.Second)
+			opts.Language = language
 			html, err := fetcher.FetchHTML(patentNumber, opts)
 			if err != nil {
 				switch err.(type) {
 				case *fetcher.PatentNotFoundError:
 					exitError("NOT_FOUND", "patent not found: "+patentNumber, exitNotFound)
+				case *fetcher.BotBlockedError:
+					exitError("SERVER_ERROR", err.Error(), exitServerError)
 				default:
 					exitError("NETWORK_ERROR", fmt.Sprintf("network error: %v", err), exitGeneralError)
 				}
@@ -147,6 +165,22 @@ Examples:
 
 			data := parser.ParseAll(html)
 			dm := formatter.ToDataMap(data)
+
+			// --fields: filter to selected fields
+			var fieldsList []string
+			for _, token := range multiFields {
+				for _, f := range strings.Split(token, ",") {
+					f = strings.TrimSpace(f)
+					if f != "" {
+						fieldsList = append(fieldsList, f)
+					}
+				}
+			}
+
+			// Add structured fields only when explicitly requested.
+			if needsStructured(singleField, fieldsList) {
+				formatter.AddStructuredFields(dm, data)
+			}
 
 			// --field: single plain value
 			if singleField != "" {
@@ -159,16 +193,6 @@ Examples:
 				return nil
 			}
 
-			// --fields: filter to selected fields
-			var fieldsList []string
-			for _, token := range multiFields {
-				for _, f := range strings.Split(token, ",") {
-					f = strings.TrimSpace(f)
-					if f != "" {
-						fieldsList = append(fieldsList, f)
-					}
-				}
-			}
 			if len(fieldsList) > 0 {
 				for _, f := range fieldsList {
 					if _, ok := dm.Get(f); !ok {
@@ -197,6 +221,7 @@ Examples:
 	cmd.Flags().StringVar(&singleField, "field", "", "Print a single field value as plain text (overrides --format)")
 	cmd.Flags().StringArrayVar(&multiFields, "fields", nil, "Comma-separated field list. Repeatable: --fields title --fields abstract")
 	cmd.Flags().IntVarP(&timeout, "timeout", "t", 15, "HTTP request timeout in seconds")
+	cmd.Flags().StringVar(&language, "language", "", "Fetch patent in specified language via Google machine translation (e.g. 'en')")
 	cmd.Flags().StringVarP(&outputDir, "output-dir", "o", "", "Save result to DIR; filename is derived from the patent number")
 	return cmd
 }
@@ -227,6 +252,8 @@ Examples:
 				switch err.(type) {
 				case *fetcher.PatentNotFoundError:
 					exitError("NOT_FOUND", "patent not found: "+patentNumber, exitNotFound)
+				case *fetcher.BotBlockedError:
+					exitError("SERVER_ERROR", err.Error(), exitServerError)
 				default:
 					exitError("NETWORK_ERROR", fmt.Sprintf("network error: %v", err), exitGeneralError)
 				}
@@ -294,6 +321,8 @@ Examples:
 				switch err.(type) {
 				case *fetcher.PatentNotFoundError:
 					exitError("NOT_FOUND", "patent not found: "+patentNumber, exitNotFound)
+				case *fetcher.BotBlockedError:
+					exitError("SERVER_ERROR", err.Error(), exitServerError)
 				default:
 					exitError("NETWORK_ERROR", fmt.Sprintf("network error: %v", err), exitGeneralError)
 				}
@@ -346,6 +375,12 @@ func fieldsCmd() *cobra.Command {
 		Short: "List all available output fields and their labels",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			for _, key := range formatter.FieldOrder {
+				label := formatter.LabelFor(key)
+				fmt.Printf("  %-25s %s\n", key, label)
+			}
+			fmt.Println()
+			fmt.Println("Opt-in structured fields (use --field or --fields to request):")
+			for _, key := range formatter.StructuredFieldNames {
 				label := formatter.LabelFor(key)
 				fmt.Printf("  %-25s %s\n", key, label)
 			}

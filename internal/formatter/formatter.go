@@ -50,7 +50,9 @@ var labels = map[string]string{
 	"publication_date":         "Publication Date",
 	"cpc_codes":                "CPC Codes",
 	"claims":                   "Claims",
+	"claims_structured":        "Claims (Structured)",
 	"description":              "Description",
+	"description_structured":   "Description (Structured)",
 	"patent_url":               "Patent URL",
 	"backward_citations":       "Backward Citations",
 	"backward_citations_family": "Backward Citations (Family)",
@@ -60,6 +62,9 @@ var labels = map[string]string{
 	"similar_documents":        "Similar Documents",
 	"family_applications":      "Family Applications (Worldwide)",
 }
+
+// StructuredFieldNames lists the opt-in structured fields not included in default output.
+var StructuredFieldNames = []string{"claims_structured", "description_structured"}
 
 // DataMap is an ordered map of field name → value (interface{} for JSON compat).
 type DataMap struct {
@@ -179,6 +184,21 @@ func familyOrNil(s []parser.FamilyApplication) interface{} {
 		return []parser.FamilyApplication{}
 	}
 	return s
+}
+
+// AddStructuredFields appends claims_structured and description_structured to dm.
+// Called only when the user explicitly requests these fields via --field / --fields.
+func AddStructuredFields(dm *DataMap, data parser.PatentData) {
+	if len(data.ClaimsStructured) > 0 {
+		dm.set("claims_structured", data.ClaimsStructured)
+	} else {
+		dm.set("claims_structured", []parser.StructuredClaim{})
+	}
+	if len(data.DescriptionStructured) > 0 {
+		dm.set("description_structured", data.DescriptionStructured)
+	} else {
+		dm.set("description_structured", []parser.StructuredDescription{})
+	}
 }
 
 // SelectFields returns a new DataMap with only the requested fields.
@@ -334,6 +354,18 @@ func serializeValue(v interface{}, fieldKey string) string {
 		var parts []string
 		for _, c := range val {
 			parts = append(parts, serializeFamilyApp(c))
+		}
+		return strings.Join(parts, "; ")
+	case []parser.StructuredClaim:
+		var parts []string
+		for _, c := range val {
+			parts = append(parts, c.Number+". "+c.Text)
+		}
+		return strings.Join(parts, "; ")
+	case []parser.StructuredDescription:
+		var parts []string
+		for _, p := range val {
+			parts = append(parts, "["+p.Number+"] "+p.Text)
 		}
 		return strings.Join(parts, "; ")
 	}

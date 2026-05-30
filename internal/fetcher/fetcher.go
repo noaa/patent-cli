@@ -30,6 +30,13 @@ func (e *PatentNotFoundError) Error() string {
 	return fmt.Sprintf("patent not found: %s", e.PatentNumber)
 }
 
+// BotBlockedError is returned when Google detects automated access.
+type BotBlockedError struct{}
+
+func (e *BotBlockedError) Error() string {
+	return "request blocked by Google (bot detection / rate limiting); try again later or increase delay_ms in config"
+}
+
 // FetchError wraps network or HTTP errors.
 type FetchError struct {
 	Message string
@@ -44,6 +51,7 @@ type Options struct {
 	Timeout  time.Duration
 	Proxies  map[string]string
 	CABundle string
+	Language string // if set, appends /<language> to the patent URL (e.g. "en" for machine translation)
 }
 
 // NormalizeForURL converts a patent number to the Google Patents URL format.
@@ -123,6 +131,9 @@ func get(targetURL string, opts Options) (*http.Response, error) {
 func FetchHTML(patentNumber string, opts Options) (string, error) {
 	normalized := NormalizeForURL(patentNumber)
 	targetURL := fmt.Sprintf("%s/%s", baseURL, normalized)
+	if opts.Language != "" {
+		targetURL = fmt.Sprintf("%s/%s/%s", baseURL, normalized, opts.Language)
+	}
 
 	resp, err := get(targetURL, opts)
 	if err != nil {
@@ -141,7 +152,20 @@ func FetchHTML(patentNumber string, opts Options) (string, error) {
 	if err != nil {
 		return "", &FetchError{Message: err.Error()}
 	}
-	return string(body), nil
+	html := string(body)
+	if isBotBlocked(html) {
+		return "", &BotBlockedError{}
+	}
+	return html, nil
+}
+
+// isBotBlocked reports whether the HTML is Google's bot-detection / rate-limit page.
+// Google returns HTTP 200 for this page, so status code alone is insufficient.
+func isBotBlocked(html string) bool {
+	// <title>Sorry...</title> is the canonical marker on the block page.
+	// Also catch the fallback text Google embeds in the body.
+	return strings.Contains(html, "<title>Sorry...</title>") ||
+		strings.Contains(html, "Our systems have detected unusual traffic")
 }
 
 // FetchBinary downloads a URL to destPath (used for PDFs and images).

@@ -2,6 +2,43 @@ package fetcher
 
 import "testing"
 
+func TestIsBotBlocked(t *testing.T) {
+	tests := []struct {
+		name string
+		html string
+		want bool
+	}{
+		{
+			name: "sorry title",
+			html: `<!DOCTYPE html><html><head><title>Sorry...</title></head><body></body></html>`,
+			want: true,
+		},
+		{
+			name: "unusual traffic body",
+			html: `<html><body>Our systems have detected unusual traffic from your computer network.</body></html>`,
+			want: true,
+		},
+		{
+			name: "normal patent page",
+			html: `<html><head><title>US8725880B2 - Google Patents</title></head><body></body></html>`,
+			want: false,
+		},
+		{
+			name: "empty html",
+			html: "",
+			want: false,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isBotBlocked(tc.html)
+			if got != tc.want {
+				t.Errorf("isBotBlocked() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestNormalizeForURL(t *testing.T) {
 	tests := []struct {
 		input string

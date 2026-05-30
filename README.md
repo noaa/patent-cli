@@ -78,6 +78,12 @@ gp-cli lookup US12514139B2 --minify
 # Suppress progress messages (useful in scripts)
 gp-cli lookup US12514139B2 --quiet
 
+# Fetch machine-translated English version
+gp-cli lookup KR102355140B1 --language en
+
+# Structured claims and description (opt-in)
+gp-cli lookup US12514139B2 --fields claims_structured,description_structured
+
 # WO/PCT patent
 gp-cli lookup WO2022123456A1
 
@@ -124,6 +130,22 @@ gp-cli fields
 | `--quiet`, `-q` | Suppress progress messages on stderr |
 | `--minify` | Compact JSON output (no indentation) |
 | `--verbose`, `-v` | Print debug logs to stderr |
+| `--language LANG` | Fetch via Google machine translation (e.g. `en`). Useful for non-English patents. |
+
+### Opt-in Structured Fields
+
+Two fields are excluded from default output and must be requested explicitly:
+
+| Field | Description |
+|-------|-------------|
+| `claims_structured` | Claims as a JSON array of `{"number": "1", "text": "…"}` objects |
+| `description_structured` | Description paragraphs as a JSON array of `{"number": "1", "id": "…", "text": "…"}` objects |
+
+```sh
+gp-cli lookup US12514139B2 --fields claims_structured
+gp-cli lookup US12514139B2 --fields claims_structured,description_structured
+gp-cli fields   # lists all available fields including opt-in ones
+```
 
 ---
 

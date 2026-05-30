@@ -2,6 +2,7 @@ package parser
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -44,6 +45,19 @@ type FamilyApplication struct {
 	LegalStatus       string `json:"legal_status,omitempty"`
 }
 
+// StructuredClaim holds a single parsed claim with its number and text.
+type StructuredClaim struct {
+	Number string `json:"number"`
+	Text   string `json:"text"`
+}
+
+// StructuredDescription holds a single description paragraph with its number, id, and text.
+type StructuredDescription struct {
+	Number string `json:"number"`
+	ID     string `json:"id,omitempty"`
+	Text   string `json:"text"`
+}
+
 // PatentData holds all parsed fields for a patent.
 type PatentData struct {
 	PublicationNumber       string              `json:"publication_number"`
@@ -68,7 +82,9 @@ type PatentData struct {
 	ForwardCitations        []Citation          `json:"forward_citations"`
 	ForwardCitationsFamily  []Citation          `json:"forward_citations_family"`
 	SimilarDocuments        []SimilarDocument   `json:"similar_documents"`
-	FamilyApplications      []FamilyApplication `json:"family_applications"`
+	FamilyApplications      []FamilyApplication     `json:"family_applications"`
+	ClaimsStructured        []StructuredClaim       `json:"claims_structured,omitempty"`
+	DescriptionStructured   []StructuredDescription `json:"description_structured,omitempty"`
 }
 
 var (
@@ -146,6 +162,8 @@ func ParseAll(html string) PatentData {
 		ForwardCitationsFamily:  parseCitationRows(doc, "forwardReferencesFamily"),
 		SimilarDocuments:        parseSimilarDocuments(doc),
 		FamilyApplications:      parseFamilyApplications(doc),
+		ClaimsStructured:        parseClaimsStructured(doc),
+		DescriptionStructured:   parseDescriptionStructured(doc),
 	}
 }
 
@@ -235,6 +253,13 @@ func parseAbstract(doc *goquery.Document) string {
 		if inner := section.Find(".abstract").First(); inner.Length() > 0 {
 			target = inner
 		}
+		// Translated (/en) pages: strip original-language spans then use meta as
+		// the DOM abstract section retains only the "Translated from …" label.
+		if target.Find("span.notranslate").Length() > 0 {
+			if meta := strings.TrimSpace(metaContent(doc, "description")); meta != "" {
+				return meta
+			}
+		}
 		text := strings.TrimSpace(target.Text())
 		if text != "" {
 			return text
@@ -321,7 +346,8 @@ func parseClaims(doc *goquery.Document) []string {
 		}
 	}
 	if container == nil {
-		return nil
+		// Translated (/en) pages use <claim num="N"> custom elements.
+		return parseClaimsTranslated(doc)
 	}
 
 	var result []string
@@ -352,6 +378,126 @@ func parseClaims(doc *goquery.Document) []string {
 	return result
 }
 
+// parseClaimsTranslated handles <claim num="N"> custom elements in /en translated pages.
+// Structure: <span class="notranslate"><span class="google-src-text">원문</span>English</span>
+// Removing google-src-text leaves only the English translation inside notranslate.
+func parseClaimsTranslated(doc *goquery.Document) []string {
+	var result []string
+	doc.Find("claim").Each(func(_ int, s *goquery.Selection) {
+		cloned := s.Clone()
+		cloned.Find("span.google-src-text").Remove()
+		text := strings.TrimSpace(cloned.Text())
+		text = multiSpaceRE.ReplaceAllString(text, " ")
+		if text != "" {
+			result = append(result, text)
+		}
+	})
+	return result
+}
+
+func parseClaimsStructured(doc *goquery.Document) []StructuredClaim {
+	var container *goquery.Selection
+	if div := doc.Find("div.claims").First(); div.Length() > 0 {
+		container = div
+	} else if section := doc.Find("[itemprop='claims']").First(); section.Length() > 0 {
+		if ol := section.Find("ol.claims").First(); ol.Length() > 0 {
+			container = ol
+		}
+	}
+	if container == nil {
+		return parseClaimsStructuredTranslated(doc)
+	}
+
+	var result []StructuredClaim
+	container.Children().Each(func(_ int, child *goquery.Selection) {
+		classes, _ := child.Attr("class")
+		if !strings.Contains(classes, "claim") {
+			return
+		}
+		num, _ := child.Attr("num")
+		num = strings.TrimLeft(num, "0")
+		if num == "" {
+			num = "0"
+		}
+		text := strings.TrimSpace(child.Text())
+		text = claimSpaceRE.ReplaceAllString(text, "$1. ")
+		text = multiSpaceRE.ReplaceAllString(text, " ")
+		text = strings.TrimSpace(text)
+		if text == "" {
+			return
+		}
+		result = append(result, StructuredClaim{Number: num, Text: text})
+	})
+	return result
+}
+
+func parseClaimsStructuredTranslated(doc *goquery.Document) []StructuredClaim {
+	var result []StructuredClaim
+	doc.Find("claim").Each(func(_ int, s *goquery.Selection) {
+		num, _ := s.Attr("num")
+		num = strings.TrimLeft(num, "0")
+		if num == "" {
+			num = "0"
+		}
+		cloned := s.Clone()
+		cloned.Find("span.google-src-text").Remove()
+		text := strings.TrimSpace(cloned.Text())
+		text = multiSpaceRE.ReplaceAllString(text, " ")
+		if text != "" {
+			result = append(result, StructuredClaim{Number: num, Text: text})
+		}
+	})
+	return result
+}
+
+func parseDescriptionStructured(doc *goquery.Document) []StructuredDescription {
+	var result []StructuredDescription
+	doc.Find("div.description-paragraph[num]").Each(func(_ int, s *goquery.Selection) {
+		num, _ := s.Attr("num")
+		id, _ := s.Attr("id")
+		text := strings.TrimSpace(s.Text())
+		text = multiSpaceRE.ReplaceAllString(text, " ")
+		if text == "" {
+			return
+		}
+		result = append(result, StructuredDescription{
+			Number: strings.TrimLeft(num, "0"),
+			ID:     id,
+			Text:   text,
+		})
+	})
+	if len(result) == 0 {
+		return parseDescriptionStructuredTranslated(doc)
+	}
+	return result
+}
+
+// parseDescriptionStructuredTranslated handles <p> tags in /en translated pages.
+// Paragraphs are numbered sequentially; <span class="notranslate"> (original language) is stripped.
+func parseDescriptionStructuredTranslated(doc *goquery.Document) []StructuredDescription {
+	section := doc.Find("[itemprop='description']").First()
+	if section.Length() == 0 {
+		return nil
+	}
+	cloned := section.Clone()
+	cloned.Find("span.notranslate").Remove()
+	var result []StructuredDescription
+	i := 0
+	cloned.Find("p").Each(func(_ int, s *goquery.Selection) {
+		text := strings.TrimSpace(s.Text())
+		text = multiSpaceRE.ReplaceAllString(text, " ")
+		if text == "" {
+			return
+		}
+		i++
+		result = append(result, StructuredDescription{
+			Number: strconv.Itoa(i),
+			Text:   text,
+		})
+	})
+	return result
+}
+
 func parseDescription(doc *goquery.Document) string {
 	var tag *goquery.Selection
 	if t := doc.Find(".description").First(); t.Length() > 0 {
@@ -362,12 +508,16 @@ func parseDescription(doc *goquery.Document) string {
 	if tag == nil {
 		return ""
 	}
+	// Translated (/en) pages embed original-language text in <span class="notranslate">.
+	// Clone and strip those spans so only the English translation remains.
+	if tag.Find("span.notranslate").Length() > 0 {
+		tag = tag.Clone()
+		tag.Find("span.notranslate").Remove()
+	}
 	text := strings.TrimSpace(tag.Text())
 	text = regexp.MustCompile(`\s+`).ReplaceAllString(text, " ")
 	text = figRE.ReplaceAllString(text, "$1. $2$3")
 	text = refNumRE.ReplaceAllStringFunc(text, func(s string) string {
-		// preserve the character after the match by using a zero-width trick:
-		// just run the sub-group substitution
 		m := refNumRE.FindStringSubmatch(s)
 		if m != nil {
 			return m[1] + m[2]
