@@ -55,6 +55,28 @@ Extract the archive and place `gp-cli` (or `gp-cli.exe`) anywhere in your `PATH`
 
 ---
 
+### Build from Source
+
+Requires [Go 1.21+](https://go.dev/dl/).
+
+```sh
+git clone https://github.com/noaa/patent-cli.git
+cd patent-cli
+go build -o gp-cli ./cmd/gp-cli/
+```
+
+Move the binary to a directory in your `PATH`:
+
+```sh
+# macOS / Linux
+mv gp-cli ~/.local/bin/
+
+# Windows (PowerShell)
+Move-Item gp-cli.exe $env:LOCALAPPDATA\gp-cli\gp-cli.exe
+```
+
+---
+
 ## Usage
 
 ### Look Up Patent Metadata

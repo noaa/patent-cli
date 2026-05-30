@@ -46,9 +46,13 @@ type FamilyApplication struct {
 }
 
 // StructuredClaim holds a single parsed claim with its number and text.
+// Type is "independent" or "dependent" when detectable from HTML claim-ref tags (US/EP);
+// omitted for translated pages where markup is unavailable.
 type StructuredClaim struct {
-	Number string `json:"number"`
-	Text   string `json:"text"`
+	Number    string   `json:"number"`
+	Type      string   `json:"type,omitempty"`
+	DependsOn []string `json:"depends_on,omitempty"`
+	Text      string   `json:"text"`
 }
 
 // StructuredDescription holds a single description paragraph with its number, id, and text.
@@ -414,7 +418,17 @@ func parseClaimsStructured(doc *goquery.Document) []StructuredClaim {
 		if !strings.Contains(classes, "claim") {
 			return
 		}
+		// US patent HTML wraps each claim: outer <div class="claim"> (no num)
+		// contains inner <div id="CLM-XXXXX" num="XXXXX" class="claim">.
+		// Prefer the num attribute from the inner element when the outer lacks it.
 		num, _ := child.Attr("num")
+		target := child
+		if num == "" {
+			if inner := child.Find("[num]").First(); inner.Length() > 0 {
+				num, _ = inner.Attr("num")
+				target = inner
+			}
+		}
 		num = strings.TrimLeft(num, "0")
 		if num == "" {
 			num = "0"
@@ -426,7 +440,32 @@ func parseClaimsStructured(doc *goquery.Document) []StructuredClaim {
 		if text == "" {
 			return
 		}
-		result = append(result, StructuredClaim{Number: num, Text: text})
+
+		// Detect independent/dependent via <claim-ref idref="CLM-XXXXX"> tags.
+		// Only present in patent-office HTML (US/EP); absent in translated pages.
+		claimType := "independent"
+		var dependsOn []string
+		seen := make(map[string]bool)
+		target.Find("claim-ref[idref]").Each(func(_ int, ref *goquery.Selection) {
+			idref, _ := ref.Attr("idref")
+			n := strings.TrimLeft(strings.TrimPrefix(strings.ToUpper(idref), "CLM-"), "0")
+			if n == "" {
+				n = "0"
+			}
+			if !seen[n] {
+				seen[n] = true
+				dependsOn = append(dependsOn, n)
+			}
+		})
+		if len(dependsOn) > 0 {
+			claimType = "dependent"
+		}
+
+		sc := StructuredClaim{Number: num, Type: claimType, Text: text}
+		if len(dependsOn) > 0 {
+			sc.DependsOn = dependsOn
+		}
+		result = append(result, sc)
 	})
 	return result
 }

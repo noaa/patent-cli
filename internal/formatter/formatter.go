@@ -66,10 +66,18 @@ var labels = map[string]string{
 // StructuredFieldNames lists the opt-in structured fields not included in default output.
 var StructuredFieldNames = []string{"claims_structured", "description_structured"}
 
+// Warning represents a data quality issue detected during parsing or formatting.
+type Warning struct {
+	Field   string `json:"field"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
 // DataMap is an ordered map of field name → value (interface{} for JSON compat).
 type DataMap struct {
-	keys   []string
-	values map[string]interface{}
+	keys     []string
+	values   map[string]interface{}
+	warnings []Warning
 }
 
 func newDataMap() *DataMap {
@@ -188,9 +196,13 @@ func familyOrNil(s []parser.FamilyApplication) interface{} {
 
 // AddStructuredFields appends claims_structured and description_structured to dm.
 // Called only when the user explicitly requests these fields via --field / --fields.
+// Automatically attaches data quality warnings to dm when detectable issues exist.
 func AddStructuredFields(dm *DataMap, data parser.PatentData) {
 	if len(data.ClaimsStructured) > 0 {
 		dm.set("claims_structured", data.ClaimsStructured)
+		for _, w := range claimsStructuredWarnings(data.ClaimsStructured) {
+			dm.warnings = append(dm.warnings, w)
+		}
 	} else {
 		dm.set("claims_structured", []parser.StructuredClaim{})
 	}
@@ -201,7 +213,53 @@ func AddStructuredFields(dm *DataMap, data parser.PatentData) {
 	}
 }
 
+// claimsStructuredWarnings returns data quality warnings for a set of structured claims.
+// Detects: translated-page parse (no type info) and suspiciously short claim texts.
+func claimsStructuredWarnings(claims []parser.StructuredClaim) []Warning {
+	if len(claims) == 0 {
+		return nil
+	}
+	var warnings []Warning
+
+	hasType := false
+	for _, c := range claims {
+		if c.Type != "" {
+			hasType = true
+			break
+		}
+	}
+	if !hasType {
+		warnings = append(warnings, Warning{
+			Field:   "claims_structured",
+			Code:    "TRANSLATED_PAGE_NO_TYPE_INFO",
+			Message: "Claim type and dependency data unavailable; page was served as a machine translation",
+		})
+	}
+
+	var shortNums []string
+	for _, c := range claims {
+		if len(strings.TrimSpace(c.Text)) < 20 {
+			shortNums = append(shortNums, c.Number)
+		}
+	}
+	if len(shortNums) > 0 {
+		warnings = append(warnings, Warning{
+			Field:   "claims_structured",
+			Code:    "SUSPICIOUSLY_SHORT_CLAIM_TEXT",
+			Message: fmt.Sprintf("Claim(s) %s have text ≤ 20 chars; likely translation artifacts — verify against source", strings.Join(shortNums, ", ")),
+		})
+	}
+
+	return warnings
+}
+
+// Warnings returns the data quality warnings attached to this DataMap.
+func (dm *DataMap) Warnings() []Warning {
+	return dm.warnings
+}
+
 // SelectFields returns a new DataMap with only the requested fields.
+// Warnings are always carried over from the source DataMap.
 func SelectFields(dm *DataMap, fields []string) *DataMap {
 	if len(fields) == 0 {
 		return dm
@@ -212,31 +270,34 @@ func SelectFields(dm *DataMap, fields []string) *DataMap {
 			out.set(f, v)
 		}
 	}
+	out.warnings = dm.warnings
 	return out
 }
 
 // Render converts a DataMap to the requested format string.
-// For the json format, minify controls whether output is compact or indented.
-func Render(dm *DataMap, fmt_ string, minify bool) string {
+// For json format, minify controls indentation.
+// For tsv format, noHeader omits the header row (useful for loop/pipeline appending).
+func Render(dm *DataMap, fmt_ string, minify bool, noHeader bool) string {
 	switch fmt_ {
 	case "json":
 		return renderJSON(dm, minify)
 	case "text":
 		return renderText(dm)
 	case "tsv":
-		return renderTSV(dm)
+		return renderTSV(dm, noHeader)
 	}
 	return ""
 }
 
-// renderJSON wraps the DataMap in a {ok, results} envelope.
+// renderJSON wraps the DataMap in a {ok, results, _warnings?} envelope.
 func renderJSON(dm *DataMap, minify bool) string {
 	type envelope struct {
-		OK      bool            `json:"ok"`
-		Results json.RawMessage `json:"results"`
+		OK       bool            `json:"ok"`
+		Results  json.RawMessage `json:"results"`
+		Warnings []Warning       `json:"_warnings,omitempty"`
 	}
 	inner, _ := dm.MarshalJSON()
-	env := envelope{OK: true, Results: json.RawMessage(inner)}
+	env := envelope{OK: true, Results: json.RawMessage(inner), Warnings: dm.warnings}
 	var b []byte
 	if minify {
 		b, _ = json.Marshal(env)
@@ -275,7 +336,7 @@ func renderText(dm *DataMap) string {
 	return strings.Join(lines, "\n")
 }
 
-func renderTSV(dm *DataMap) string {
+func renderTSV(dm *DataMap, noHeader bool) string {
 	var keys []string
 	inOrder := make(map[string]bool)
 	for _, k := range FieldOrder {
@@ -294,6 +355,9 @@ func renderTSV(dm *DataMap) string {
 		header = append(header, k)
 		v, _ := dm.get(k)
 		row = append(row, serializeValue(v, k))
+	}
+	if noHeader {
+		return strings.Join(row, "\t")
 	}
 	return strings.Join(header, "\t") + "\n" + strings.Join(row, "\t")
 }
@@ -478,34 +542,37 @@ func serializeFamilyApp(a parser.FamilyApplication) string {
 	return strings.Join(parts, " | ")
 }
 
-// PrintField prints a single field value (--field option).
-func PrintField(v interface{}) {
+// FieldToString converts a single field value to its string representation.
+func FieldToString(v interface{}) string {
 	if v == nil {
-		return
+		return ""
 	}
 	switch val := v.(type) {
 	case string:
-		fmt.Println(val)
+		return val + "\n"
 	case []string:
-		for _, s := range val {
-			fmt.Println(s)
-		}
+		return strings.Join(val, "\n") + "\n"
 	case []parser.Citation:
 		b, _ := json.MarshalIndent(val, "", "  ")
-		fmt.Println(string(b))
+		return string(b) + "\n"
 	case []parser.NonPatentCitation:
 		b, _ := json.MarshalIndent(val, "", "  ")
-		fmt.Println(string(b))
+		return string(b) + "\n"
 	case []parser.SimilarDocument:
 		b, _ := json.MarshalIndent(val, "", "  ")
-		fmt.Println(string(b))
+		return string(b) + "\n"
 	case []parser.FamilyApplication:
 		b, _ := json.MarshalIndent(val, "", "  ")
-		fmt.Println(string(b))
+		return string(b) + "\n"
 	default:
 		b, _ := json.MarshalIndent(val, "", "  ")
-		fmt.Println(string(b))
+		return string(b) + "\n"
 	}
+}
+
+// PrintField prints a single field value (--field option).
+func PrintField(v interface{}) {
+	fmt.Print(FieldToString(v))
 }
 
 var fmtExt = map[string]string{
@@ -525,7 +592,7 @@ func SaveToDir(dm *DataMap, fmt_, outputDir, patentNumber string) (string, error
 	}
 	path := filepath.Join(outputDir, patentNumber+ext)
 
-	content := Render(dm, fmt_, false)
+	content := Render(dm, fmt_, false, false)
 
 	// Use UTF-8 BOM for text/tsv (Excel/Notepad compatibility)
 	var data []byte
@@ -541,7 +608,7 @@ func SaveToDir(dm *DataMap, fmt_, outputDir, patentNumber string) (string, error
 	return path, nil
 }
 
-// PrintErrorJSON writes a structured JSON error envelope to stdout.
+// PrintErrorJSON writes a structured JSON error envelope to stderr.
 func PrintErrorJSON(errType, message string) {
 	type errInfo struct {
 		Type    string `json:"type"`
@@ -555,5 +622,5 @@ func PrintErrorJSON(errType, message string) {
 		OK:    false,
 		Error: errInfo{Type: errType, Message: message},
 	}, "", "  ")
-	fmt.Println(string(b))
+	fmt.Fprintln(os.Stderr, string(b))
 }
