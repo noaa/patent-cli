@@ -79,8 +79,8 @@ Move-Item gp-cli.exe $env:LOCALAPPDATA\gp-cli\gp-cli.exe
 
 ## Claude Code 플러그인
 
-> **왜 patent-cli인가?** Go 네이티브 바이너리로 Node.js/Python 런타임이 불필요합니다.
-> 콜드 스타트가 즉각적이며 스크립트 기반 특허 플러그인 대비 MCP 응답속도가 현저히 빠릅니다.
+> **왜 patent-cli인가?** 순수 HTTP 요청 방식으로 Headless 브라우저 오버헤드가 없습니다.
+> MCP 호출 1회로 결과를 직접 반환 — 브라우저 기반 플러그인 대비 응답속도가 현저히 빠릅니다.
 
 ### 설치
 

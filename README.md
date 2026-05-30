@@ -79,9 +79,9 @@ Move-Item gp-cli.exe $env:LOCALAPPDATA\gp-cli\gp-cli.exe
 
 ## Claude Code Plugin
 
-> **Why patent-cli?** Go native binary — no Node.js or Python runtime required.
-> Cold-start is near-instant and MCP responses are significantly faster than
-> script-based patent plugins.
+> **Why patent-cli?** Pure HTTP fetch — no headless browser overhead.
+> Single MCP call returns results directly; no separate query step needed.
+> Significantly faster than browser-based patent plugins.
 
 ### Installation
 

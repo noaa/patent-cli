@@ -12,7 +12,7 @@ agent: general-purpose
 
 Fetch patent metadata using the patent-cli MCP server.
 
-**Why patent-cli**: Go native binary — no Node/Python runtime overhead. Cold-start is near-instant and MCP round-trips are noticeably faster than script-based alternatives.
+**Why patent-cli**: Pure HTTP fetch, no headless browser. Single MCP call returns results directly — no dataset name + separate query step required by browser-based alternatives.
 
 ## When to use
 

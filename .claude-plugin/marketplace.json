@@ -4,7 +4,7 @@
   "plugins": [
     {
       "name": "patent-cli",
-      "description": "Fast Go-native patent lookup — single binary, no runtime dependencies, faster MCP responses than Node/Python alternatives.",
+      "description": "Google Patents lookup — pure HTTP fetch, no headless browser overhead, single-call MCP response. Faster than browser-based alternatives.",
       "version": "0.1.0",
       "author": { "name": "area99" },
       "source": "./claude-plugin"
