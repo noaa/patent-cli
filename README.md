@@ -69,7 +69,7 @@ gp-cli lookup US12514139B2 --format text
 # Select specific fields
 gp-cli lookup US12514139B2 --fields title,assignee,filing_date
 
-# Single field
+# Single field value (plain text)
 gp-cli lookup US12514139B2 --field title
 
 # Compact JSON (no indentation)
@@ -78,17 +78,17 @@ gp-cli lookup US12514139B2 --minify
 # Suppress progress messages (useful in scripts)
 gp-cli lookup US12514139B2 --quiet
 
-# Fetch machine-translated English version
+# Fetch machine-translated English version of a non-English patent
 gp-cli lookup KR102355140B1 --language en
 
-# Structured claims and description (opt-in)
+# Structured claims and description (opt-in fields)
 gp-cli lookup US12514139B2 --fields claims_structured,description_structured
 
-# WO/PCT patent
-gp-cli lookup WO2022123456A1
+# Save result to a file (suppresses stdout)
+gp-cli lookup US12514139B2 --output-dir ./output
 
-# KR patent
-gp-cli lookup KR102355140B1
+# Save a single field to a file
+gp-cli lookup US12514139B2 --field claims --output-dir ./output
 ```
 
 ### Download PDF
@@ -103,6 +103,7 @@ gp-cli download US12514139B2 --output-dir ./pdfs
 ```sh
 gp-cli images US12514139B2
 gp-cli images US12514139B2 --output-dir ./figures
+# Saved as US12514139B2_fig01.png, US12514139B2_fig02.png, ...
 ```
 
 ### List Available Fields
@@ -120,7 +121,8 @@ gp-cli fields
 | `--format json` | JSON (default) — wrapped in `{"ok": true, "results": {...}}` |
 | `--format text` | Label + value text |
 | `--format tsv` | Tab-separated (paste into Excel) |
-| `--output-dir DIR` | Save output to a file |
+| `--output-dir DIR` | Save output to a file; suppresses stdout |
+| `--no-header` | Omit TSV header row (useful when appending rows in a loop) |
 | `--minify` | Compact JSON output (no indentation) |
 
 ## Global Flags
@@ -132,20 +134,132 @@ gp-cli fields
 | `--verbose`, `-v` | Print debug logs to stderr |
 | `--language LANG` | Fetch via Google machine translation (e.g. `en`). Useful for non-English patents. |
 
-### Opt-in Structured Fields
+---
+
+## Error Handling
+
+Errors are written to **stderr** as structured JSON and the process exits with a typed exit code.
+
+```json
+{
+  "ok": false,
+  "error": {
+    "type": "NOT_FOUND",
+    "message": "patent not found: US99999999X1"
+  }
+}
+```
+
+| Exit code | Meaning |
+|-----------|---------|
+| `0` | Success |
+| `1` | General error |
+| `4` | Patent not found |
+| `6` | Server error (bot-block, 5xx) |
+
+Because errors go to stderr, stdout is always clean data — safe to redirect to a file or pipe to `jq` without contamination.
+
+```sh
+# Safe: only TSV data reaches the file; errors appear in the terminal
+while IFS= read -r num; do
+  gp-cli lookup "$num" --format tsv --quiet
+done < list.txt > results.tsv
+```
+
+---
+
+## Scripting & Pipelines
+
+### Batch TSV with a single header row
+
+```sh
+first=1
+while IFS= read -r num; do
+  if [ $first -eq 1 ]; then
+    gp-cli lookup "$num" --fields publication_number,title,assignee --format tsv --quiet --delay 1000
+    first=0
+  else
+    gp-cli lookup "$num" --fields publication_number,title,assignee --format tsv --quiet --no-header --delay 1000
+  fi
+done < patent_list.txt > summary.tsv
+```
+
+### Extract citation patent numbers with `jq`
+
+```sh
+gp-cli lookup US8725880B2 --field backward_citations --quiet \
+  | jq -r '.[].publication_number'
+```
+
+### Filter independent claims
+
+```sh
+gp-cli lookup US12514139B2 --fields claims_structured --quiet \
+  | jq '[.results.claims_structured[] | select(.type == "independent")]'
+```
+
+### Get claim 1 and all claims that directly depend on it
+
+```sh
+gp-cli lookup US12514139B2 --fields claims_structured --quiet \
+  | jq '[.results.claims_structured[] | select(.number == "1" or (.depends_on // [] | any(. == "1")))]'
+```
+
+### Batch figure download (no filename collisions)
+
+```sh
+# Files saved as US11125686B2_fig01.png, EP3025568B1_fig01.png, ...
+for num in US11125686B2 EP3025568B1; do
+  gp-cli images "$num" --output-dir ./figures --quiet --delay 1000
+done
+```
+
+---
+
+## Opt-in Structured Fields
 
 Two fields are excluded from default output and must be requested explicitly:
 
-| Field | Description |
-|-------|-------------|
-| `claims_structured` | Claims as a JSON array of `{"number": "1", "text": "…"}` objects |
-| `description_structured` | Description paragraphs as a JSON array of `{"number": "1", "id": "…", "text": "…"}` objects |
+| Field | Schema |
+|-------|--------|
+| `claims_structured` | `{"number": "1", "type": "independent"\|"dependent", "depends_on": ["N"], "text": "…"}` |
+| `description_structured` | `{"number": "1", "id": "…", "text": "…"}` |
+
+`type` and `depends_on` are populated for US/EP patents (detected from HTML `<claim-ref>` tags). They are omitted for translated pages and non-US/EP patents where this markup is absent.
 
 ```sh
 gp-cli lookup US12514139B2 --fields claims_structured
 gp-cli lookup US12514139B2 --fields claims_structured,description_structured
 gp-cli fields   # lists all available fields including opt-in ones
 ```
+
+### Data quality warnings (`_warnings`)
+
+When `claims_structured` is requested, the JSON envelope may include a `_warnings` array alongside `ok` and `results`. The array is omitted entirely when no issues are detected.
+
+```json
+{
+  "ok": true,
+  "results": { "claims_structured": [...] },
+  "_warnings": [
+    {
+      "field": "claims_structured",
+      "code": "TRANSLATED_PAGE_NO_TYPE_INFO",
+      "message": "Claim type and dependency data unavailable; page was served as a machine translation"
+    },
+    {
+      "field": "claims_structured",
+      "code": "SUSPICIOUSLY_SHORT_CLAIM_TEXT",
+      "message": "Claim(s) 1 have text ≤ 20 chars; likely translation artifacts — verify against source"
+    }
+  ]
+}
+```
+
+| Warning code | Meaning |
+|---|---|
+| `TRANSLATED_PAGE_NO_TYPE_INFO` | No claim has `type`; page was machine-translated — `depends_on` also absent |
+| `SUSPICIOUSLY_SHORT_CLAIM_TEXT` | One or more claim texts are ≤ 20 chars; likely a translation artifact |
 
 ---
 
@@ -159,10 +273,44 @@ gp-cli configure
 
 Config file location: `~/.patent-cli.toml`
 
+```toml
+[proxy]
+https = "http://proxy.corp:8080"
+http  = "http://proxy.corp:8080"
+
+[ssl]
+ca_bundle = "/path/to/ca.pem"
+
+[request]
+delay_ms = 500   # sleep before each request — use in loops to avoid bot detection
+```
+
 ---
 
-## Version
+## Version & Update
 
 ```sh
 gp-cli --version
+gp-cli update           # check and update automatically
+gp-cli update --check   # only print version info
 ```
+
+---
+
+## Development
+
+```sh
+# Build
+go build ./...
+go build -o gp-cli ./cmd/gp-cli/
+
+# Unit tests (no network)
+go test ./internal/fetcher/ ./internal/formatter/ ./internal/parser/ -v
+
+# Integration tests (hits live Google Patents — ~15 s)
+go test -tags integration ./tests/integration/ -v -timeout 300s
+```
+
+Unit tests cover: patent number normalization, bot-block detection, JSON/text/TSV rendering, structured field warnings, and HTML parsing of US/translated claims and description paragraphs.
+
+Integration tests build the binary and run it against real patents — one per country (US/EP/KR/JP/CN/GB/DE/AU/BR/MX/TW/WO), plus NOT\_FOUND, `--minify`, `--fields`, `--language`, and `claims_structured` / `description_structured` cases.
