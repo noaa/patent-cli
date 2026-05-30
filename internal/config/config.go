@@ -9,10 +9,15 @@ import (
 	"strings"
 )
 
-// ConfigPath returns the path to the config file (~/.patent-cli.toml).
-func ConfigPath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".patent-cli.toml")
+// ConfigPath returns the path to the config file.
+// macOS: ~/Library/Application Support/patent-cli/config.toml
+// Linux: ~/.config/patent-cli/config.toml
+func ConfigPath() (string, error) {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("resolving user config directory: %w", err)
+	}
+	return filepath.Join(base, "patent-cli", "config.toml"), nil
 }
 
 type ProxyConfig struct {
@@ -39,9 +44,12 @@ type RequestOptions struct {
 	CABundle string
 }
 
-// Load reads ~/.patent-cli.toml; returns empty Config if file not found.
+// Load reads the config file; returns empty Config if file not found.
 func Load() (Config, error) {
-	path := ConfigPath()
+	path, err := ConfigPath()
+	if err != nil {
+		return Config{}, err
+	}
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return Config{}, nil
@@ -52,9 +60,16 @@ func Load() (Config, error) {
 	return parseToml(string(data)), nil
 }
 
-// Save writes config to ~/.patent-cli.toml.
+// Save writes config to the user config directory.
 func Save(cfg Config) error {
-	return os.WriteFile(ConfigPath(), []byte(dumpToml(cfg)), 0644)
+	path, err := ConfigPath()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return fmt.Errorf("creating config directory: %w", err)
+	}
+	return os.WriteFile(path, []byte(dumpToml(cfg)), 0600)
 }
 
 // GetRequestOptions extracts HTTP proxy/TLS options from Config.

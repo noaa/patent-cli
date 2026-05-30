@@ -646,16 +646,20 @@ func configureCmd() *cobra.Command {
 		Short: "Interactively set proxy and CA-cert options and save to config file",
 		Long: `Interactively set proxy and CA-cert options and save to config file.
 
-Config file: ~/.patent-cli.toml
 Press Enter with no value to skip a field.
 Existing values are shown as defaults.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			existing, _ := config.Load()
 			scanner := bufio.NewScanner(os.Stdin)
 
+			configPath, err := config.ConfigPath()
+			if err != nil {
+				return err
+			}
+
 			fmt.Println("Google Patent CLI — Configuration")
 			fmt.Println(strings.Repeat("─", 40))
-			fmt.Println("Config file:", config.ConfigPath())
+			fmt.Println("Config file:", configPath)
 			fmt.Println()
 
 			httpsProxy := prompt(scanner, "HTTPS proxy URL", existing.Proxy.HTTPS)
@@ -689,7 +693,7 @@ Existing values are shown as defaults.`,
 			if err := config.Save(newCfg); err != nil {
 				return fmt.Errorf("failed to save config: %w", err)
 			}
-			fmt.Println("\nConfig saved:", config.ConfigPath())
+			fmt.Println("\nConfig saved:", configPath)
 			fmt.Println()
 			if httpsProxy != "" {
 				fmt.Println("  proxy.https =", httpsProxy)

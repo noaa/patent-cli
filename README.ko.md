@@ -293,7 +293,7 @@ gp-cli fields   # opt-in 필드 포함 전체 필드 목록 확인
 gp-cli configure
 ```
 
-설정 파일 위치: `~/.patent-cli.toml`
+설정 파일 위치: macOS `~/Library/Application Support/patent-cli/config.toml`, Linux `~/.config/patent-cli/config.toml`
 
 ```toml
 [proxy]

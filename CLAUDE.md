@@ -35,7 +35,7 @@ All user-facing logic lives in `cmd/gp-cli/main.go` as Cobra subcommands. The fo
 | `internal/fetcher` | HTTP client (`FetchHTML`, `FetchBinary`). Normalizes patent numbers for the Google Patents URL format (US 6-digit sequences are zero-padded to 7 digits). Supports proxy and custom CA via `Options`. `Options.Language` appends `/<lang>` to the URL for Google machine translation. Detects bot-block pages (HTTP 200 with "Sorry..." title or "unusual traffic" body) via `isBotBlocked` and returns `BotBlockedError`. |
 | `internal/parser` | Parses raw HTML → `PatentData`. Uses `goquery` for DOM traversal and regex for `<meta>` / canonical URL extraction. `ParseImageURLs` deduplicates thumbnail vs. high-res by taking the last occurrence of each filename. Handles translated (`/en`) pages by stripping `span.google-src-text` / `span.notranslate` before text extraction. Populates `ClaimsStructured` (`[]StructuredClaim`) and `DescriptionStructured` (`[]StructuredDescription`) on every parse, but these are only surfaced in output when explicitly requested. `StructuredClaim` carries `type` ("independent"/"dependent") and `depends_on` (parent claim numbers) derived from `<claim-ref idref="CLM-XXXXX">` tags in US/EP patent-office HTML; omitted for translated pages where this markup is absent. |
 | `internal/formatter` | Converts `PatentData` → `DataMap` (ordered map) → rendered output (`json`/`text`/`tsv`). `text` and `tsv` files are written with a UTF-8 BOM for Excel/Notepad compatibility. `DataMap` has a custom `MarshalJSON` to preserve insertion order. `StructuredFieldNames` lists opt-in fields (`claims_structured`, `description_structured`) excluded from default output; `AddStructuredFields` appends them on demand and automatically runs `claimsStructuredWarnings` to populate `DataMap.warnings`. JSON output wraps these as `_warnings` at the envelope level (omitted when empty). |
-| `internal/config` | Minimal hand-rolled TOML parser/writer for `~/.patent-cli.toml`. Sections: `[proxy]`, `[ssl]`, `[request]`. |
+| `internal/config` | Minimal hand-rolled TOML parser/writer. Path via `os.UserConfigDir()`: macOS `~/Library/Application Support/patent-cli/config.toml`, Linux `~/.config/patent-cli/config.toml`. Sections: `[proxy]`, `[ssl]`, `[request]`. |
 | `internal/updater` | Self-update: queries GitHub Releases API, downloads the platform-appropriate asset (tar.gz or zip), extracts the binary, and atomically replaces the running executable. Windows handles the rename-while-running constraint by moving the current exe to `.old` first. |
 
 ### Request flow
@@ -52,7 +52,9 @@ main.go subcommand
 
 ## Config file
 
-`~/.patent-cli.toml` — all fields optional, defaults to no proxy / no delay:
+Path: `os.UserConfigDir()/patent-cli/config.toml` (macOS: `~/Library/Application Support/patent-cli/config.toml`, Linux: `~/.config/patent-cli/config.toml`)
+
+All fields optional, defaults to no proxy / no delay:
 
 ```toml
 [proxy]

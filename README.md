@@ -293,7 +293,7 @@ For corporate networks with a proxy:
 gp-cli configure
 ```
 
-Config file location: `~/.patent-cli.toml`
+Config file location: macOS `~/Library/Application Support/patent-cli/config.toml`, Linux `~/.config/patent-cli/config.toml`
 
 ```toml
 [proxy]
