@@ -77,6 +77,85 @@ Move-Item gp-cli.exe $env:LOCALAPPDATA\gp-cli\gp-cli.exe
 
 ---
 
+## Claude Code Plugin
+
+> **Why patent-cli?** Go native binary — no Node.js or Python runtime required.
+> Cold-start is near-instant and MCP responses are significantly faster than
+> script-based patent plugins.
+
+### Installation
+
+```sh
+# 1. Install the gp-cli binary (if not already installed)
+curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
+
+# 2. Install the Claude Code plugin
+claude plugin install https://github.com/noaa/patent-cli
+```
+
+### Available skills and MCP tools
+
+| Skill | MCP Tool | Description |
+|-------|----------|-------------|
+| `/patent-lookup` | `patent_lookup` | Fetch patent details by number |
+| `/patent-fields` | `patent_fields` | List all available fields |
+
+---
+
+## Codex Plugin
+
+```sh
+# 1. Install the gp-cli binary (if not already installed)
+curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
+
+# 2. Install the Codex plugin
+codex plugin install github:noaa/patent-cli
+```
+
+Same skills and MCP tools as the Claude Code plugin. Codex app and CLI share the same bundle — installing via CLI makes the plugin available in the desktop app automatically.
+
+---
+
+## Antigravity Plugin
+
+```sh
+# 1. Install the gp-cli binary (if not already installed)
+curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
+
+# 2. Add MCP server to ~/.config/antigravity/settings.json
+# Add the following under "mcpServers":
+#   "patent-cli": { "command": "gp-cli", "args": ["mcp"], "transport": "stdio" }
+
+# 3. Copy skills to local skills directory
+cp -r antigravity-plugin/skills/* ~/.config/antigravity/skills/
+```
+
+---
+
+## Claude Desktop Extension
+
+Drag-and-drop installation via `.mcpb` bundle — no binary pre-install required; the platform binary is bundled inside.
+
+```sh
+# Download the .mcpb for your platform from GitHub Releases, then:
+# Claude Desktop → Settings → Extensions → drag patent-cli-<platform>.mcpb onto the window
+```
+
+Or install via deep link (replace `<version>` and `<platform>`):
+```
+claude://install-extension?url=https://github.com/noaa/patent-cli/releases/download/<version>/patent-cli-<platform>.mcpb
+```
+
+Available `.mcpb` assets per release:
+
+| File | Platform |
+|------|----------|
+| `patent-cli-darwin-arm64.mcpb` | macOS Apple Silicon |
+| `patent-cli-darwin-amd64.mcpb` | macOS Intel |
+| `patent-cli-windows-amd64.mcpb` | Windows x64 |
+
+---
+
 ## Usage
 
 ### Look Up Patent Metadata
@@ -331,6 +410,9 @@ go test ./internal/fetcher/ ./internal/formatter/ ./internal/parser/ -v
 
 # Integration tests (hits live Google Patents — ~15 s)
 go test -tags integration ./tests/integration/ -v -timeout 300s
+
+# MCP server (stdio — input prompt means ready)
+gp-cli mcp
 ```
 
 Unit tests cover: patent number normalization, bot-block detection, JSON/text/TSV rendering, structured field warnings, and HTML parsing of US/translated claims and description paragraphs.

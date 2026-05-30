@@ -20,21 +20,28 @@ jobs:
             goos: darwin
             goarch: arm64
             asset: gp-cli-darwin-arm64
+            build_mcpb: true
+            mcpb_asset: patent-cli-darwin-arm64.mcpb
           - os: macOS-amd64
             runner: macos-latest
             goos: darwin
             goarch: amd64
             asset: gp-cli-darwin-amd64
+            build_mcpb: true
+            mcpb_asset: patent-cli-darwin-amd64.mcpb
           - os: Linux-amd64
             runner: ubuntu-latest
             goos: linux
             goarch: amd64
             asset: gp-cli-linux-amd64
+            build_mcpb: false
           - os: Windows-amd64
             runner: ubuntu-latest
             goos: windows
             goarch: amd64
             asset: gp-cli-windows-amd64.exe
+            build_mcpb: true
+            mcpb_asset: patent-cli-windows-amd64.mcpb
 
     steps:
       - uses: actions/checkout@v4
@@ -61,12 +68,33 @@ jobs:
         run: |
           zip ${{ matrix.asset }}.zip ${{ matrix.asset }}
 
+      - name: Build .mcpb desktop extension
+        if: matrix.build_mcpb
+        run: |
+          BINARY_NAME=gp-cli
+          if [ "${{ matrix.goos }}" = "windows" ]; then BINARY_NAME=gp-cli.exe; fi
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          CMD='${__dirname}/server/'"${BINARY_NAME}"
+
+          mkdir -p mcpb-build/server
+          cp ${{ matrix.asset }} mcpb-build/server/${BINARY_NAME}
+
+          jq --arg v "$VERSION" \
+             --arg ep "server/${BINARY_NAME}" \
+             --arg cmd "$CMD" \
+             '.version = $v | .server.entry_point = $ep | .server.mcp_config.command = $cmd' \
+             desktop-extension/manifest.json > mcpb-build/manifest.json
+
+          cd mcpb-build && zip -r ../${{ matrix.mcpb_asset }} manifest.json server/ && cd ..
+
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             ${{ matrix.asset }}.tar.gz
             ${{ matrix.asset }}.zip
+            ${{ matrix.mcpb_asset }}
           fail_on_unmatched_files: false
 
   upload-scripts:

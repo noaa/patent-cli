@@ -1,0 +1,13 @@
+interface:
+  display_name: "Patent Fields"
+  short_description: "List available fields for patent lookup"
+  brand_color: "#1a73e8"
+
+policy:
+  allow_implicit_invocation: false
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "patent-cli"
+      description: "Google Patents MCP server"

@@ -1,0 +1,20 @@
+{
+  "name": "patent-cli",
+  "displayName": "Patent CLI",
+  "version": "0.1.0",
+  "description": "Fast Go-native patent lookup for Codex. Single binary, no runtime dependencies — significantly faster MCP responses than Node/Python-based alternatives. Fetches title, abstract, claims, assignee, legal status, and figures from Google Patents.",
+  "author": {
+    "name": "area99",
+    "url": "https://github.com/area99/patent-cli"
+  },
+  "homepage": "https://github.com/area99/patent-cli",
+  "repository": "https://github.com/area99/patent-cli",
+  "license": "MIT",
+  "keywords": ["patent", "google-patents", "ip", "research", "mcp"],
+  "mcpServers": {
+    "patent-cli": {
+      "command": "gp-cli",
+      "args": ["mcp"]
+    }
+  }
+}

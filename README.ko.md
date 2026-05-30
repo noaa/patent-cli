@@ -77,6 +77,78 @@ Move-Item gp-cli.exe $env:LOCALAPPDATA\gp-cli\gp-cli.exe
 
 ---
 
+## Claude Code 플러그인
+
+> **왜 patent-cli인가?** Go 네이티브 바이너리로 Node.js/Python 런타임이 불필요합니다.
+> 콜드 스타트가 즉각적이며 스크립트 기반 특허 플러그인 대비 MCP 응답속도가 현저히 빠릅니다.
+
+### 설치
+
+```sh
+# 1. gp-cli 바이너리 설치 (아직 설치하지 않은 경우)
+curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
+
+# 2. Claude Code 플러그인 설치
+claude plugin install https://github.com/noaa/patent-cli
+```
+
+### 제공되는 스킬 및 MCP 툴
+
+| 스킬 | MCP 툴 | 설명 |
+|------|--------|------|
+| `/patent-lookup` | `patent_lookup` | 특허번호로 특허 상세 정보 조회 |
+| `/patent-fields` | `patent_fields` | 사용 가능한 필드 목록 조회 |
+
+---
+
+## Codex 플러그인
+
+```sh
+# 1. gp-cli 바이너리 설치 (아직 설치하지 않은 경우)
+curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
+
+# 2. Codex 플러그인 설치
+codex plugin install github:noaa/patent-cli
+```
+
+Claude Code 플러그인과 동일한 스킬 및 MCP 툴을 제공합니다. Codex CLI에서 설치하면 Codex 데스크탑 앱에서도 자동으로 인식됩니다.
+
+---
+
+## Antigravity 플러그인
+
+```sh
+# 1. gp-cli 바이너리 설치 (아직 설치하지 않은 경우)
+curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
+
+# 2. ~/.config/antigravity/settings.json의 "mcpServers"에 다음을 추가:
+#   "patent-cli": { "command": "gp-cli", "args": ["mcp"], "transport": "stdio" }
+
+# 3. 스킬 파일을 로컬 스킬 디렉터리에 복사
+cp -r antigravity-plugin/skills/* ~/.config/antigravity/skills/
+```
+
+---
+
+## Claude Desktop 확장
+
+`.mcpb` 번들로 드래그 앤 드롭 설치 — 바이너리가 번들 안에 포함되어 있어 사전 설치가 필요 없습니다.
+
+```sh
+# GitHub Releases에서 플랫폼에 맞는 .mcpb 파일을 다운로드한 후:
+# Claude Desktop → 설정 → 확장 → patent-cli-<플랫폼>.mcpb 파일을 드래그 앤 드롭
+```
+
+릴리스별 `.mcpb` 에셋:
+
+| 파일 | 플랫폼 |
+|------|--------|
+| `patent-cli-darwin-arm64.mcpb` | macOS Apple Silicon |
+| `patent-cli-darwin-amd64.mcpb` | macOS Intel |
+| `patent-cli-windows-amd64.mcpb` | Windows x64 |
+
+---
+
 ## 사용법
 
 ### 특허 메타데이터 조회
@@ -316,3 +388,26 @@ gp-cli --version
 gp-cli update           # 최신 버전으로 자동 업데이트
 gp-cli update --check   # 버전 정보만 확인 (업데이트 미진행)
 ```
+
+---
+
+## 개발
+
+```sh
+# 빌드
+go build ./...
+go build -o gp-cli ./cmd/gp-cli/
+
+# 유닛 테스트 (네트워크 불필요)
+go test ./internal/fetcher/ ./internal/formatter/ ./internal/parser/ -v
+
+# 통합 테스트 (실제 Google Patents 접속 — 약 15초)
+go test -tags integration ./tests/integration/ -v -timeout 300s
+
+# MCP 서버 실행 (stdio — 입력 대기 상태면 정상)
+gp-cli mcp
+```
+
+유닛 테스트: 특허번호 정규화, 봇 차단 감지, JSON/text/TSV 렌더링, 구조화 필드 경고, US/번역 청구항 및 설명 HTML 파싱 커버.
+
+통합 테스트: 실제 특허를 대상으로 국가별(US/EP/KR/JP/CN/GB/DE/AU/BR/MX/TW/WO) 실행. NOT\_FOUND, `--minify`, `--fields`, `--language`, `claims_structured` / `description_structured` 케이스 포함.

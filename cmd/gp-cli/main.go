@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
@@ -12,8 +13,10 @@ import (
 	"github.com/area99/patent-cli/internal/config"
 	"github.com/area99/patent-cli/internal/fetcher"
 	"github.com/area99/patent-cli/internal/formatter"
+	"github.com/area99/patent-cli/internal/mcpserver"
 	"github.com/area99/patent-cli/internal/parser"
 	"github.com/area99/patent-cli/internal/updater"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 )
 
@@ -79,6 +82,7 @@ Quick start:
 		fieldsCmd(),
 		configureCmd(),
 		updateCmd(),
+		mcpCmd(),
 	)
 
 	if err := root.Execute(); err != nil {
@@ -760,6 +764,40 @@ Examples:
 	return cmd
 }
 
+// ── mcp ───────────────────────────────────────────────────────────────────────
+
+func mcpCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "mcp",
+		Short: "Run as an MCP server over stdio (for Claude Code / Codex / Antigravity integration)",
+		Long: `Start gp-cli as a Model Context Protocol (MCP) server.
+
+Communicates over stdin/stdout using newline-delimited JSON-RPC.
+Intended to be launched by an MCP host (Claude Code, Codex, Antigravity CLI, etc.)
+via the mcpServers configuration, not run directly.
+
+Exposed tools:
+  patent_lookup   Fetch patent metadata by patent number
+  patent_fields   List all available output field names
+
+Example plugin.json entry:
+  "mcpServers": {
+    "patent-cli": { "command": "gp-cli", "args": ["mcp"] }
+  }`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			srv := mcpserver.Build(version)
+			session, err := srv.Connect(context.Background(), &mcp.StdioTransport{}, nil)
+			if err != nil {
+				return fmt.Errorf("mcp server connect: %w", err)
+			}
+			if err := session.Wait(); err != nil && !isClosedErr(err) {
+				return fmt.Errorf("mcp server: %w", err)
+			}
+			return nil
+		},
+	}
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 func prompt(scanner *bufio.Scanner, label, defaultVal string) string {
@@ -776,6 +814,18 @@ func prompt(scanner *bufio.Scanner, label, defaultVal string) string {
 		return line
 	}
 	return defaultVal
+}
+
+// isClosedErr returns true for errors that indicate a normal MCP session shutdown
+// (client closed the connection or EOF on stdin).
+func isClosedErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	return strings.Contains(s, "EOF") ||
+		strings.Contains(s, "server is closing") ||
+		strings.Contains(s, "use of closed")
 }
 
 // resolvePatentNumbers returns the list of patent numbers to process.

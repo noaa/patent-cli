@@ -1,0 +1,13 @@
+interface:
+  display_name: "Patent Lookup"
+  short_description: "Look up patents from Google Patents"
+  brand_color: "#1a73e8"
+
+policy:
+  allow_implicit_invocation: true
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "patent-cli"
+      description: "Google Patents MCP server"

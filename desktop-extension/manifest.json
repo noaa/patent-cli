@@ -1,0 +1,35 @@
+{
+  "mcpb_version": "0.1",
+  "name": "patent-cli",
+  "version": "0.1.0",
+  "description": "Fast Go-native patent lookup for Claude Desktop. Single binary, no runtime dependencies — significantly faster MCP responses than Node/Python-based alternatives. Fetches title, abstract, claims, assignee, legal status, and figures from Google Patents.",
+  "author": {
+    "name": "area99",
+    "url": "https://github.com/area99/patent-cli"
+  },
+  "homepage": "https://github.com/area99/patent-cli",
+  "license": "MIT",
+  "keywords": ["patent", "google-patents", "ip", "research"],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/gp-cli",
+    "mcp_config": {
+      "command": "${__dirname}/server/gp-cli",
+      "args": ["mcp"]
+    }
+  },
+  "tools": [
+    {
+      "name": "patent_lookup",
+      "description": "Fetch complete patent details by patent number (title, abstract, claims, assignee, legal status, figures)"
+    },
+    {
+      "name": "patent_fields",
+      "description": "List all available fields for patent_lookup"
+    }
+  ],
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32"]
+  }
+}
