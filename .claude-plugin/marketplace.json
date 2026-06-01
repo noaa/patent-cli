@@ -1,5 +1,6 @@
 {
   "name": "patent-cli-marketplace",
+  "description": "Patent CLI plugin marketplace — fast Google Patents lookup via HTTP with MCP server support.",
   "owner": { "name": "area99" },
   "plugins": [
     {
