@@ -89,7 +89,10 @@ Move-Item gp-cli.exe $env:LOCALAPPDATA\gp-cli\gp-cli.exe
 # 1. Install the gp-cli binary (if not already installed)
 curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
 
-# 2. Install the Claude Code plugin
+# 2. Add the marketplace (required before plugin install)
+claude plugin marketplace add noaa/patent-cli
+
+# 3. Install the Claude Code plugin
 claude plugin install https://github.com/noaa/patent-cli
 ```
 

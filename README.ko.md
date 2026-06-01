@@ -88,7 +88,10 @@ Move-Item gp-cli.exe $env:LOCALAPPDATA\gp-cli\gp-cli.exe
 # 1. gp-cli 바이너리 설치 (아직 설치하지 않은 경우)
 curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
 
-# 2. Claude Code 플러그인 설치
+# 2. 마켓플레이스 등록 (플러그인 설치 전 필수)
+claude plugin marketplace add noaa/patent-cli
+
+# 3. Claude Code 플러그인 설치
 claude plugin install https://github.com/noaa/patent-cli
 ```
 
