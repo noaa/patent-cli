@@ -49,3 +49,5 @@ There is no top-level `legal_status`, `priority_date`, or `pdf_url` field.
 Legal status appears inside `family_applications` entries when Google Patents
 provides it. Use `gp-cli download` for PDF files and `gp-cli images` for
 drawing figures.
+Use `gp-cli family-group` to group a patent-number list by patent family;
+family grouping is a CLI workflow, not a `patent_lookup` output field.

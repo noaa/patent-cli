@@ -37,3 +37,5 @@ Returns two categories:
 - Legal status is available only within `family_applications` entries when present.
 - Use `patent_url` for the Google Patents page URL.
 - Use `gp-cli download` to save PDFs and `gp-cli images` to save drawing figures.
+- Use `gp-cli family-group` to group a patent-number list by patent family;
+  family grouping is a CLI workflow, not a `patent_lookup` output field.

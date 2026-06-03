@@ -1,6 +1,18 @@
 # gp-cli — Google Patents CLI
 
-A command-line tool to query patent metadata and download PDFs and drawing images from Google Patents.
+`gp-cli` is a fast Google Patents CLI built for patent review, claim analysis,
+and AI coding-agent workflows.
+
+What it does:
+
+- Fetches structured patent metadata, claims, descriptions, citations, and family applications
+- Downloads patent PDFs and high-resolution drawing figures
+- Processes patent-number lists in bulk with request delays for safer automation
+- Groups input patents by patent family while skipping already discovered family members
+- Exposes MCP tools for Claude Code, Codex CLI, Gemini CLI, and other agent runtimes
+
+Designed for terminal use first: clean JSON/TSV/text output, script-friendly
+exit codes, and no headless browser dependency.
 
 > 한국어 문서: [README.ko.md](README.ko.md)
 
@@ -228,6 +240,25 @@ gp-cli images US12514139B2 --output-dir ./figures
 # Saved as US12514139B2_fig01.png, US12514139B2_fig02.png, ...
 ```
 
+### Group Patents by Family
+
+```sh
+# Group explicit patent numbers
+gp-cli family-group US8725880B2 US8704863B2 US9735861B2
+
+# Read patent numbers from a file
+gp-cli family-group --input-file patents.txt --format text
+
+# TSV output for spreadsheets
+gp-cli family-group --input-file patents.txt --format tsv --output-dir ./groups
+```
+
+`family-group` fetches each patent's `family_applications` and groups input
+patents that belong to the same family. If a later input patent was already
+identified as a member of a fetched family, it is skipped to reduce Google
+Patents requests. A random 1000-1500 ms delay is applied between fetches; use
+`--delay MS` to set an explicit delay.
+
 ### List Available Fields
 
 ```sh
@@ -240,7 +271,7 @@ gp-cli fields
 
 | Option | Description |
 |--------|-------------|
-| `--format json` | JSON (default) — wrapped in `{"ok": true, "results": {...}}` |
+| `--format json` | JSON (default) — `lookup` uses `{"ok": true, "results": {...}}`; `family-group` uses `{"ok": true, "groups": [...], "summary": {...}}` |
 | `--format text` | Label + value text |
 | `--format tsv` | Tab-separated (paste into Excel) |
 | `--output-dir DIR` | Save output to a file; suppresses stdout |
@@ -334,6 +365,20 @@ gp-cli lookup US12514139B2 --fields claims_structured --quiet \
 for num in US11125686B2 EP3025568B1; do
   gp-cli images "$num" --output-dir ./figures --quiet --delay 1000
 done
+```
+
+### Group a patent list by family
+
+```sh
+gp-cli family-group --input-file patent_list.txt --format tsv --quiet > family_groups.tsv
+```
+
+JSON output includes a `summary.fetch_count` value so scripts can verify the
+skip optimization:
+
+```sh
+gp-cli family-group US8725880B2 US8704863B2 US9735861B2 --minify --quiet \
+  | jq '.summary.fetch_count'
 ```
 
 ---

@@ -1,6 +1,18 @@
 # gp-cli — Google Patents CLI
 
-Google Patents에서 특허 메타데이터를 조회하고, PDF·도면 이미지를 다운로드하는 커맨드라인 도구입니다.
+`gp-cli`는 특허 검토, 청구항 분석, AI 코딩 에이전트 워크플로우를 위한
+빠른 Google Patents CLI입니다.
+
+주요 기능:
+
+- 특허 메타데이터, 청구항, 설명, 인용, 패밀리 출원 정보를 구조화해 조회
+- 특허 PDF와 고해상도 도면 이미지 다운로드
+- 특허번호 목록 일괄 처리 및 자동화용 요청 지연 적용
+- 입력 특허를 패밀리별로 그룹핑하고 이미 확인된 패밀리 멤버 fetch 스킵
+- Claude Code, Codex CLI, Gemini CLI 등 에이전트 런타임용 MCP 도구 제공
+
+터미널 사용에 맞춰 설계되었습니다. JSON/TSV/text 출력이 깔끔하게 분리되고,
+스크립트 친화적인 exit code를 제공하며, headless browser가 필요 없습니다.
 
 > English documentation: [README.md](README.md)
 
@@ -221,6 +233,25 @@ gp-cli images US12514139B2 --output-dir ./figures
 # US12514139B2_fig01.png, US12514139B2_fig02.png, ... 형태로 저장됨
 ```
 
+### 특허 패밀리별 그룹핑
+
+```sh
+# 명령행에 특허번호 직접 지정
+gp-cli family-group US8725880B2 US8704863B2 US9735861B2
+
+# 파일에서 특허번호 읽기
+gp-cli family-group --input-file patents.txt --format text
+
+# 스프레드시트용 TSV 출력
+gp-cli family-group --input-file patents.txt --format tsv --output-dir ./groups
+```
+
+`family-group`은 각 특허의 `family_applications`를 조회해 같은 패밀리에
+속한 입력 특허들을 같은 그룹으로 묶습니다. 이후 입력 특허가 이미 조회된
+패밀리의 멤버로 확인되면 해당 특허 fetch를 건너뛰어 Google Patents 요청
+수를 줄입니다. fetch 사이에는 1000-1500 ms 랜덤 지연이 자동 적용되며,
+`--delay MS`로 명시 지연시간을 지정할 수 있습니다.
+
 ### 사용 가능한 필드 목록
 
 ```sh
@@ -233,7 +264,7 @@ gp-cli fields
 
 | 옵션 | 설명 |
 |------|------|
-| `--format json` | JSON (기본값) — `{"ok": true, "results": {...}}` 형태 |
+| `--format json` | JSON (기본값) — `lookup`은 `{"ok": true, "results": {...}}`, `family-group`은 `{"ok": true, "groups": [...], "summary": {...}}` 형태 |
 | `--format text` | 레이블 + 값 텍스트 |
 | `--format tsv` | 탭 구분 (Excel 붙여넣기용) |
 | `--output-dir DIR` | 파일로 저장; stdout 출력 억제 |
@@ -327,6 +358,19 @@ gp-cli lookup US12514139B2 --fields claims_structured --quiet \
 for num in US11125686B2 EP3025568B1; do
   gp-cli images "$num" --output-dir ./figures --quiet --delay 1000
 done
+```
+
+### 특허 목록을 패밀리별로 그룹핑
+
+```sh
+gp-cli family-group --input-file patent_list.txt --format tsv --quiet > family_groups.tsv
+```
+
+JSON 출력에는 fetch 스킵 최적화 확인용 `summary.fetch_count` 값이 포함됩니다:
+
+```sh
+gp-cli family-group US8725880B2 US8704863B2 US9735861B2 --minify --quiet \
+  | jq '.summary.fetch_count'
 ```
 
 ---

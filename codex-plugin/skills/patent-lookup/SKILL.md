@@ -1,6 +1,6 @@
 ---
 name: patent-lookup
-description: "Fetch Google Patents metadata by patent number with patent_lookup, and use gp-cli commands for PDFs, figure images, bulk runs, language translation, configuration, and updates."
+description: "Fetch Google Patents metadata by patent number with patent_lookup, and use gp-cli commands for PDFs, figure images, bulk runs, patent-family grouping, language translation, configuration, and updates."
 metadata:
   author: area99
   version: 0.1.0
@@ -19,6 +19,7 @@ MCP server does not expose, run the `gp-cli` command directly.
 - User asks for patent metadata or text: title, abstract, claims, assignee, filing date, publication date, citations, family applications, CPC codes, description, or patent URL
 - User asks to download a patent PDF or drawing figures
 - User asks to process a file of patent numbers in bulk
+- User asks to group patent numbers by patent family
 - User asks to configure proxy, CA bundle, or request delay settings
 
 ## MCP tools
@@ -34,8 +35,9 @@ Only these MCP tools are exposed:
 - `patent_lookup`: fetch metadata and text fields
 - `patent_fields`: list available field names
 
-Do not assume MCP can download PDFs or figure images. Use the CLI commands below
-for file downloads and bulk file workflows.
+Do not assume MCP can download PDFs, download figure images, or group patents
+by family. Use the CLI commands below for file downloads, bulk file workflows,
+and family grouping.
 
 ## Response structure
 
@@ -77,6 +79,18 @@ gp-cli images US12514139B2 --output-dir ./figures
 gp-cli images --input-file patents.txt --output-dir ./figures
 ```
 
+Use `gp-cli family-group` to group a patent-number list by patent family:
+
+```sh
+gp-cli family-group US8725880B2 US8704863B2 US9735861B2
+gp-cli family-group --input-file patents.txt --format text
+gp-cli family-group --input-file patents.txt --format tsv --output-dir ./groups
+```
+
+`family-group` fetches `family_applications`, groups input patents that belong
+to the same family, and skips later inputs already discovered as family members.
+Its JSON output uses `.groups` and `.summary`, not `.results`.
+
 Use support commands when needed:
 
 ```sh
@@ -110,3 +124,6 @@ Apply at least 1500 ms delay between manual calls.
 For CLI bulk mode with `--input-file`, `gp-cli` automatically applies a random
 1000-1500 ms delay between requests. For manual shell loops, pass `--delay
 1500` or higher.
+
+`gp-cli family-group` also applies delay between fetches and accepts `--delay`
+for an explicit interval.

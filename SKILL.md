@@ -24,6 +24,10 @@ gp-cli lookup --input-file patents.txt --format tsv --output-dir ./results
 gp-cli download --input-file patents.txt --output-dir ./pdfs
 gp-cli images --input-file patents.txt --output-dir ./figures
 
+# Group a patent list by family
+gp-cli family-group --input-file patents.txt --format tsv --output-dir ./groups
+gp-cli family-group US8725880B2 US8704863B2 US9735861B2 --format text
+
 # Download drawing images
 gp-cli images US11125686B2 --output-dir ./figures
 
@@ -35,7 +39,7 @@ gp-cli download US9735861B2 --output-dir ./pdfs
 
 ## JSON Response Structure — Required Parsing Path
 
-`gp-cli` JSON output always uses an **envelope** structure.
+`gp-cli lookup` JSON output always uses an **envelope** structure.
 Access `.results.claims_structured`, not `.claims_structured` directly.
 
 ```json
@@ -56,6 +60,26 @@ Access `.results.claims_structured`, not `.claims_structured` directly.
 gp-cli lookup US12514139B2 | jq '.results.title'
 gp-cli lookup US12514139B2 --fields claims_structured | jq '.results.claims_structured[] | select(.type == "independent")'
 ```
+
+`gp-cli family-group` is a CLI-only workflow and uses a different JSON envelope:
+
+```json
+{
+  "ok": true,
+  "groups": [
+    { "id": 1, "patents": ["US8725880B2", "US8704863B2"] }
+  ],
+  "summary": {
+    "total_input": 3,
+    "total_groups": 2,
+    "total_errors": 0,
+    "fetch_count": 2
+  }
+}
+```
+
+Use `.summary.fetch_count` to verify that already discovered family members
+were skipped.
 
 ---
 
@@ -95,6 +119,13 @@ done < patents.txt
 
 # Recommended: --input-file (delay applied automatically)
 gp-cli lookup --input-file patents.txt --output-dir ./out
+```
+
+The `family-group` command also applies delay between fetches and skips later
+input patents already identified as family members:
+
+```sh
+gp-cli family-group --input-file patents.txt --format tsv --delay 1500
 ```
 
 When a bot-block occurs (exit 6, `SERVER_ERROR`):
@@ -158,6 +189,12 @@ gp-cli lookup --input-file patents.txt --format tsv --output-dir ./results
 
 # Aggregating to stdout (header managed automatically)
 gp-cli lookup --input-file patents.txt --format tsv > family_summary.tsv
+```
+
+For family grouping, TSV output has `group_id` and `patent_number` columns:
+
+```sh
+gp-cli family-group --input-file patents.txt --format tsv > family_groups.tsv
 ```
 
 ---
