@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
@@ -20,7 +21,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const version = "0.1.0"
+const version = "0.1.3"
 
 const (
 	exitOK           = 0
@@ -51,11 +52,12 @@ func main() {
 		Long: `Google Patents CLI — fetch patent metadata by patent number.
 
 Commands:
-  lookup      Fetch metadata for a patent number (or bulk via --input-file)
-  download    Download the patent PDF (or bulk via --input-file)
-  images      Download high-resolution figure images (or bulk via --input-file)
-  fields      List all available output fields
-  configure   Set proxy / CA-cert options
+  lookup        Fetch metadata for a patent number (or bulk via --input-file)
+  download      Download the patent PDF (or bulk via --input-file)
+  images        Download high-resolution figure images (or bulk via --input-file)
+  family-group  Group a list of patents by patent family
+  fields        List all available output fields
+  configure     Set proxy / CA-cert options
 
 Quick start:
   gp-cli lookup US12514139B2
@@ -64,6 +66,8 @@ Quick start:
   gp-cli download US9735861 --output-dir ./pdfs
   gp-cli images US11125686B2 --output-dir ./figs
   gp-cli lookup --input-file patents.txt --format tsv --output-dir ./results
+  gp-cli family-group US8725880B2 US8704863B2 US9735861B2
+  gp-cli family-group --input-file patents.txt --format text
   gp-cli fields`,
 		Version:          version,
 		SilenceUsage:     true,
@@ -79,6 +83,7 @@ Quick start:
 		lookupCmd(),
 		downloadCmd(),
 		imagesCmd(),
+		familyGroupCmd(),
 		fieldsCmd(),
 		configureCmd(),
 		updateCmd(),
@@ -796,6 +801,268 @@ Example plugin.json entry:
 			return nil
 		},
 	}
+}
+
+// ── family-group ──────────────────────────────────────────────────────────────
+
+type fgGroup struct {
+	ID      int      `json:"id"`
+	Patents []string `json:"patents"`
+}
+
+type fgError struct {
+	Patent  string `json:"patent"`
+	Message string `json:"message"`
+}
+
+type fgSummary struct {
+	TotalInput  int `json:"total_input"`
+	TotalGroups int `json:"total_groups"`
+	TotalErrors int `json:"total_errors"`
+	FetchCount  int `json:"fetch_count"`
+}
+
+type fgResult struct {
+	OK      bool      `json:"ok"`
+	Groups  []fgGroup `json:"groups"`
+	Errors  []fgError `json:"errors,omitempty"`
+	Summary fgSummary `json:"summary"`
+}
+
+func familyGroupCmd() *cobra.Command {
+	var (
+		fmt_      string
+		timeout   int
+		outputDir string
+		delayMs   int
+		noHeader  bool
+		inputFile string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "family-group PATENT_NUMBER [PATENT_NUMBER...]",
+		Short: "Group a list of patents by patent family",
+		Long: `Group a list of patents by patent family.
+
+For each patent in the input list, fetches family_applications to determine
+which patents share the same patent family. Patents already identified as
+family members are skipped — minimizing the total number of API calls.
+
+A random 1000–1500 ms jitter is applied between requests automatically.
+Use --delay to set an explicit delay.
+
+Examples:
+  gp-cli family-group US8725880B2 US8704863B2 US9735861B2
+  gp-cli family-group --input-file patents.txt
+  gp-cli family-group --input-file patents.txt --format text
+  gp-cli family-group --input-file patents.txt --format tsv`,
+		Args: cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var patentNumbers []string
+			if inputFile != "" {
+				if len(args) > 0 {
+					return fmt.Errorf("cannot combine PATENT_NUMBER arguments with --input-file")
+				}
+				nums, err := readPatentFile(inputFile)
+				if err != nil {
+					return fmt.Errorf("reading input file: %w", err)
+				}
+				if len(nums) == 0 {
+					return fmt.Errorf("no patent numbers found in %q", inputFile)
+				}
+				patentNumbers = nums
+			} else {
+				if len(args) == 0 {
+					return fmt.Errorf("at least one PATENT_NUMBER is required; use --input-file to read from a file")
+				}
+				patentNumbers = args
+			}
+
+			// norm → original: for dedup and matching
+			normToOrig := make(map[string]string, len(patentNumbers))
+			// preserve input order, deduplicate
+			var ordered []string
+			for _, p := range patentNumbers {
+				n := normPatent(p)
+				if _, seen := normToOrig[n]; !seen {
+					normToOrig[n] = p
+					ordered = append(ordered, p)
+				}
+			}
+			patentNumbers = ordered
+
+			var groups [][]string
+			assigned := make(map[string]int) // norm → group index (-1 = error)
+			var fetchErrors []fgError
+			fetchCount := 0
+
+			for _, patentNumber := range patentNumbers {
+				norm := normPatent(patentNumber)
+				if _, ok := assigned[norm]; ok {
+					continue // already grouped or errored from a previous fetch
+				}
+
+				// delay before every request except the first
+				if fetchCount > 0 {
+					sleepDelay(delayMs, true)
+				}
+				progressf("[fetch %d] %s", fetchCount+1, patentNumber)
+				fetchCount++
+
+				opts := buildOpts(time.Duration(timeout) * time.Second)
+				html, fetchErr := fetcher.FetchHTML(patentNumber, opts)
+				if fetchErr != nil {
+					errType, message, _ := classifyFetchError(fetchErr, patentNumber)
+					progressf("  → %s: %s (skipped)", errType, message)
+					fetchErrors = append(fetchErrors, fgError{Patent: patentNumber, Message: message})
+					assigned[norm] = -1
+					continue
+				}
+
+				data := parser.ParseAll(html)
+
+				// Build set of normalized patent numbers in this family
+				familyNorms := map[string]bool{norm: true}
+				for _, fa := range data.FamilyApplications {
+					if fa.PatentNumber != "" {
+						familyNorms[normPatent(fa.PatentNumber)] = true
+					}
+				}
+
+				// Collect all input patents that belong to this family
+				groupIdx := len(groups)
+				var members []string
+				for _, p := range patentNumbers {
+					pNorm := normPatent(p)
+					if _, alreadyAssigned := assigned[pNorm]; alreadyAssigned {
+						continue
+					}
+					if familyNorms[pNorm] {
+						assigned[pNorm] = groupIdx
+						members = append(members, p)
+					}
+				}
+				if len(members) == 0 {
+					// patent itself not found in its own family list (edge case)
+					assigned[norm] = groupIdx
+					members = []string{patentNumber}
+				}
+				groups = append(groups, members)
+				progressf("  → group %d: %s", groupIdx+1, strings.Join(members, ", "))
+			}
+
+			// Build result struct
+			result := fgResult{OK: true}
+			result.Summary = fgSummary{
+				TotalInput:  len(patentNumbers),
+				TotalGroups: len(groups),
+				TotalErrors: len(fetchErrors),
+				FetchCount:  fetchCount,
+			}
+			for i, g := range groups {
+				result.Groups = append(result.Groups, fgGroup{ID: i + 1, Patents: g})
+			}
+			if len(fetchErrors) > 0 {
+				result.Errors = fetchErrors
+			}
+
+			// Render output
+			output, err := renderFamilyGroup(result, fmt_, minify, noHeader)
+			if err != nil {
+				return err
+			}
+
+			if outputDir != "" {
+				ext := map[string]string{"json": ".json", "text": ".txt", "tsv": ".tsv"}[fmt_]
+				if ext == "" {
+					ext = ".json"
+				}
+				if err := os.MkdirAll(outputDir, 0755); err != nil {
+					return fmt.Errorf("failed to create directory: %w", err)
+				}
+				dest := filepath.Join(outputDir, "family_groups"+ext)
+				if err := os.WriteFile(dest, []byte(output), 0644); err != nil {
+					return fmt.Errorf("failed to save: %w", err)
+				}
+				progressf("Saved: %s", dest)
+			} else {
+				fmt.Print(output)
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&fmt_, "format", "f", "json", "Output format: json (default), text, or tsv")
+	cmd.Flags().IntVarP(&timeout, "timeout", "t", 15, "HTTP request timeout in seconds")
+	cmd.Flags().StringVarP(&outputDir, "output-dir", "o", "", "Save result to DIR as family_groups.<ext>; suppresses stdout")
+	cmd.Flags().IntVar(&delayMs, "delay", 0, "Wait N milliseconds between requests (overrides config delay_ms)")
+	cmd.Flags().BoolVar(&noHeader, "no-header", false, "Omit header row from TSV output")
+	cmd.Flags().StringVar(&inputFile, "input-file", "", "File with patent numbers (one per line; # comments and blank lines ignored)")
+	return cmd
+}
+
+// renderFamilyGroup converts an fgResult to a string in the requested format.
+func renderFamilyGroup(r fgResult, format string, compact bool, noHeader bool) (string, error) {
+	var sb strings.Builder
+	switch format {
+	case "json":
+		indent := "  "
+		if compact {
+			indent = ""
+		}
+		enc := json.NewEncoder(&sb)
+		enc.SetIndent("", indent)
+		if err := enc.Encode(r); err != nil {
+			return "", err
+		}
+	case "text":
+		for _, g := range r.Groups {
+			noun := "patents"
+			if len(g.Patents) == 1 {
+				noun = "patent"
+			}
+			fmt.Fprintf(&sb, "Group %d (%d %s):\n", g.ID, len(g.Patents), noun)
+			for _, p := range g.Patents {
+				fmt.Fprintf(&sb, "  %s\n", p)
+			}
+			sb.WriteString("\n")
+		}
+		if len(r.Errors) > 0 {
+			fmt.Fprintf(&sb, "Errors (%d):\n", len(r.Errors))
+			for _, e := range r.Errors {
+				fmt.Fprintf(&sb, "  %s: %s\n", e.Patent, e.Message)
+			}
+			sb.WriteString("\n")
+		}
+		fmt.Fprintf(&sb, "Summary: %d input, %d group(s), %d error(s), %d fetch(es)\n",
+			r.Summary.TotalInput, r.Summary.TotalGroups, r.Summary.TotalErrors, r.Summary.FetchCount)
+	case "tsv":
+		if !noHeader {
+			sb.WriteString("group_id\tpatent_number\n")
+		}
+		for _, g := range r.Groups {
+			for _, p := range g.Patents {
+				fmt.Fprintf(&sb, "%d\t%s\n", g.ID, p)
+			}
+		}
+	default:
+		return "", fmt.Errorf("unknown format %q: use json, text, or tsv", format)
+	}
+	return sb.String(), nil
+}
+
+// normPatent normalizes a patent number for family comparison:
+// uppercase, alphanumeric only (strips spaces, hyphens, dots).
+func normPatent(s string) string {
+	s = strings.ToUpper(strings.TrimSpace(s))
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
