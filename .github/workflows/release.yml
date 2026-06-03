@@ -88,26 +88,36 @@ jobs:
 
           cd mcpb-build && zip -r ../${{ matrix.mcpb_asset }} manifest.json server/ && cd ..
 
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: release-${{ matrix.os }}
+          path: |
             ${{ matrix.asset }}.tar.gz
             ${{ matrix.asset }}.zip
             ${{ matrix.mcpb_asset }}
-          fail_on_unmatched_files: false
+          if-no-files-found: ignore
 
-  upload-scripts:
-    name: Upload install scripts
+  release:
+    name: Publish Release
     runs-on: ubuntu-latest
     needs: build
     steps:
       - uses: actions/checkout@v4
 
-      - name: Upload install scripts to Release
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            dist/*
             install.sh
             install.ps1
             install.bat
+          fail_on_unmatched_files: false
