@@ -1,0 +1,20 @@
+{
+  "name": "patent-cli-local",
+  "interface": {
+    "displayName": "Patent CLI Local"
+  },
+  "plugins": [
+    {
+      "name": "patent-cli",
+      "source": {
+        "source": "local",
+        "path": "./plugins/patent-cli"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Research"
+    }
+  ]
+}

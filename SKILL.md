@@ -169,8 +169,12 @@ gp-cli fields   # list all available fields
 ```
 
 Frequently used fields: `title`, `assignee`, `abstract`, `claims`, `filing_date`,
-`publication_date`, `priority_date`, `backward_citations`, `forward_citations`,
-`family_applications`, `legal_status`, `pdf_url`
+`publication_date`, `backward_citations`, `forward_citations`,
+`family_applications`, `patent_url`
+
+There is no top-level `priority_date`, `legal_status`, or `pdf_url` field.
+Legal status appears inside `family_applications` entries when Google Patents
+provides it. Use `gp-cli download` for PDFs.
 
 Opt-in structured fields (must be requested explicitly):
 - `claims_structured` — per-claim number, type, dependency, and text

@@ -111,11 +111,29 @@ claude plugin install https://github.com/noaa/patent-cli
 # 1. Install the gp-cli binary (if not already installed)
 curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
 
-# 2. Install the Codex plugin
-codex plugin install github:noaa/patent-cli
+# 2. Clone this repository
+git clone https://github.com/noaa/patent-cli.git
+cd patent-cli
+
+# 3. Register the local Codex marketplace
+codex plugin marketplace add ./codex-marketplace
+
+# 4. Install the plugin from that marketplace
+codex plugin add patent-cli@patent-cli-local
+
+# 5. Verify installation
+codex plugin list
 ```
 
 Same skills and MCP tools as the Claude Code plugin. Codex app and CLI share the same bundle — installing via CLI makes the plugin available in the desktop app automatically.
+
+For local development, edit files under `codex-plugin/`, then reinstall:
+
+```sh
+codex plugin add patent-cli@patent-cli-local
+```
+
+Start a new Codex thread after reinstalling so the updated skills and MCP configuration are loaded.
 
 ---
 

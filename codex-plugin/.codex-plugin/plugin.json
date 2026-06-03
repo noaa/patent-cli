@@ -1,8 +1,7 @@
 {
   "name": "patent-cli",
-  "displayName": "Patent CLI",
   "version": "0.1.0",
-  "description": "Google Patents lookup for Codex. Pure HTTP fetch — no headless browser overhead, single-call MCP response. Significantly faster than browser-based alternatives. Fetches title, abstract, claims, assignee, legal status, and figures.",
+  "description": "Google Patents lookup for Codex. Provides MCP tools for patent metadata lookup and field discovery, plus documented gp-cli commands for PDFs, figures, bulk runs, configuration, and updates.",
   "author": {
     "name": "area99",
     "url": "https://github.com/area99/patent-cli"
@@ -11,10 +10,20 @@
   "repository": "https://github.com/area99/patent-cli",
   "license": "MIT",
   "keywords": ["patent", "google-patents", "ip", "research", "mcp"],
-  "mcpServers": {
-    "patent-cli": {
-      "command": "gp-cli",
-      "args": ["mcp"]
-    }
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Patent CLI",
+    "shortDescription": "Google Patents lookup and gp-cli workflows",
+    "longDescription": "Use MCP tools to fetch Google Patents metadata and list available fields. The bundled skills also document when to run gp-cli directly for PDF downloads, figure images, bulk processing, proxy/CA configuration, request delays, and updates.",
+    "developerName": "area99",
+    "category": "Research",
+    "capabilities": ["Research", "MCP"],
+    "defaultPrompt": [
+      "Look up patent US12514139B2",
+      "List available patent fields",
+      "Download patent figures with gp-cli"
+    ],
+    "brandColor": "#1A73E8"
   }
 }

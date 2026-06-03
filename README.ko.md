@@ -110,11 +110,29 @@ claude plugin install https://github.com/noaa/patent-cli
 # 1. gp-cli 바이너리 설치 (아직 설치하지 않은 경우)
 curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.sh | sh
 
-# 2. Codex 플러그인 설치
-codex plugin install github:noaa/patent-cli
+# 2. 저장소 클론
+git clone https://github.com/noaa/patent-cli.git
+cd patent-cli
+
+# 3. 로컬 Codex marketplace 등록
+codex plugin marketplace add ./codex-marketplace
+
+# 4. 해당 marketplace에서 플러그인 설치
+codex plugin add patent-cli@patent-cli-local
+
+# 5. 설치 확인
+codex plugin list
 ```
 
 Claude Code 플러그인과 동일한 스킬 및 MCP 툴을 제공합니다. Codex CLI에서 설치하면 Codex 데스크탑 앱에서도 자동으로 인식됩니다.
+
+로컬 개발 중에는 `codex-plugin/` 아래 파일을 수정한 뒤 다시 설치합니다:
+
+```sh
+codex plugin add patent-cli@patent-cli-local
+```
+
+재설치 후에는 새 Codex thread를 시작해야 업데이트된 스킬과 MCP 설정이 로드됩니다.
 
 ---
 
