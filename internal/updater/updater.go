@@ -13,6 +13,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/area99/patent-cli/internal/fetcher"
 )
 
 const repo = "noaa/patent-cli"
@@ -27,12 +29,30 @@ type asset struct {
 	BrowserDownloadURL string `json:"browser_download_url"`
 }
 
-// LatestTag returns the tag name of the latest GitHub release.
-func LatestTag() (string, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
+// newHTTPClient builds an http.Client that respects proxy and CA settings
+// from fetcher.Options, falling back to environment-based proxy when no
+// explicit proxy is configured.
+func newHTTPClient(opts fetcher.Options, timeout time.Duration) (*http.Client, error) {
+	if timeout == 0 {
+		timeout = 15 * time.Second
+	}
+	client, err := fetcher.NewClient(opts)
+	if err != nil {
+		return nil, err
+	}
+	client.Timeout = timeout
+	return client, nil
+}
 
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Get(url)
+// LatestTag returns the tag name of the latest GitHub release.
+func LatestTag(opts fetcher.Options) (string, error) {
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
+
+	client, err := newHTTPClient(opts, 15*time.Second)
+	if err != nil {
+		return "", fmt.Errorf("could not build HTTP client: %w", err)
+	}
+	resp, err := client.Get(apiURL)
 	if err != nil {
 		return "", fmt.Errorf("GitHub API request failed: %w", err)
 	}
@@ -61,14 +81,14 @@ func HasUpdate(current, latestTag string) bool {
 }
 
 // Do downloads the latest release binary and replaces the running executable.
-func Do(latestTag string) error {
+func Do(latestTag string, opts fetcher.Options) error {
 	assetName := assetFilename()
-	url, err := downloadURL(latestTag, assetName)
+	dlURL, err := downloadURL(latestTag, assetName, opts)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Downloading %s ...\n", url)
+	fmt.Fprintf(os.Stderr, "Downloading %s ...\n", dlURL)
 
 	tmp, err := os.CreateTemp("", "gp-cli-update-*")
 	if err != nil {
@@ -76,8 +96,11 @@ func Do(latestTag string) error {
 	}
 	defer os.Remove(tmp.Name())
 
-	client := &http.Client{Timeout: 120 * time.Second}
-	resp, err := client.Get(url)
+	client, err := newHTTPClient(opts, 120*time.Second)
+	if err != nil {
+		return fmt.Errorf("could not build HTTP client: %w", err)
+	}
+	resp, err := client.Get(dlURL)
 	if err != nil {
 		return fmt.Errorf("download failed: %w", err)
 	}
@@ -118,11 +141,14 @@ func assetFilename() string {
 
 // downloadURL fetches the release metadata and returns the browser download URL
 // for the requested asset.
-func downloadURL(tag, assetName string) (string, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", repo, tag)
+func downloadURL(tag, assetName string, opts fetcher.Options) (string, error) {
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", repo, tag)
 
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Get(url)
+	client, err := newHTTPClient(opts, 15*time.Second)
+	if err != nil {
+		return "", fmt.Errorf("could not build HTTP client: %w", err)
+	}
+	resp, err := client.Get(apiURL)
 	if err != nil {
 		return "", fmt.Errorf("GitHub API request failed: %w", err)
 	}

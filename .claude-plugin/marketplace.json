@@ -1,13 +1,13 @@
 {
   "name": "patent-cli-marketplace",
   "description": "Patent CLI plugin marketplace — fast Google Patents lookup via HTTP with MCP server support.",
-  "owner": { "name": "area99" },
+  "owner": { "name": "noaa" },
   "plugins": [
     {
       "name": "patent-cli",
       "description": "Google Patents lookup — pure HTTP fetch, no headless browser overhead, single-call MCP response. Faster than browser-based alternatives.",
       "version": "0.1.0",
-      "author": { "name": "area99" },
+      "author": { "name": "noaa" },
       "source": "./claude-plugin"
     }
   ]

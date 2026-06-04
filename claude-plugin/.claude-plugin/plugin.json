@@ -4,11 +4,11 @@
   "version": "0.1.0",
   "description": "Google Patents lookup for Claude Code. Pure HTTP fetch — no headless browser overhead, single-call MCP response. Significantly faster than browser-based alternatives. Fetches title, abstract, claims, assignee, legal status, and figures.",
   "author": {
-    "name": "area99",
-    "url": "https://github.com/area99/patent-cli"
+    "name": "noaa",
+    "url": "https://github.com/noaa/patent-cli"
   },
-  "homepage": "https://github.com/area99/patent-cli",
-  "repository": "https://github.com/area99/patent-cli",
+  "homepage": "https://github.com/noaa/patent-cli",
+  "repository": "https://github.com/noaa/patent-cli",
   "license": "MIT",
   "keywords": ["patent", "google-patents", "ip", "research", "mcp"],
   "mcpServers": {

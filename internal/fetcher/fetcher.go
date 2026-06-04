@@ -69,7 +69,10 @@ func NormalizeForURL(patentNumber string) string {
 	return clean
 }
 
-func newClient(opts Options) (*http.Client, error) {
+// NewClient builds an http.Client with proxy and CA settings from opts.
+// Falls back to environment-based proxy (HTTPS_PROXY / HTTP_PROXY) when no
+// explicit proxy is configured.
+func NewClient(opts Options) (*http.Client, error) {
 	transport := &http.Transport{}
 
 	if opts.CABundle != "" {
@@ -100,7 +103,7 @@ func newClient(opts Options) (*http.Client, error) {
 }
 
 func get(targetURL string, opts Options) (*http.Response, error) {
-	client, err := newClient(opts)
+	client, err := NewClient(opts)
 	if err != nil {
 		return nil, err
 	}

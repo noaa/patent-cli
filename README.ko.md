@@ -454,6 +454,36 @@ gp-cli update           # 최신 버전으로 자동 업데이트
 gp-cli update --check   # 버전 정보만 확인 (업데이트 미진행)
 ```
 
+`gp-cli update`는 `gp-cli configure`에서 설정한 프록시·CA 인증서 설정을 자동으로 사용합니다. 회사 내부망에서도 별도 조치 없이 업데이트 명령이 동작합니다.
+
+---
+
+## 제거 (Uninstall)
+
+### macOS / Linux
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/noaa/patent-cli/main/uninstall.sh | sh
+```
+
+바이너리(`~/.local/bin/gp-cli`)와 설정 디렉터리를 삭제합니다. `~/.zshrc` 또는 `~/.bashrc`의 `PATH` 항목은 안내 메시지를 참고해 직접 제거하세요.
+
+### Windows
+
+**PowerShell:**
+
+```powershell
+irm https://raw.githubusercontent.com/noaa/patent-cli/main/uninstall.ps1 | iex
+```
+
+**명령 프롬프트(CMD):**
+
+```cmd
+curl -fsSL https://raw.githubusercontent.com/noaa/patent-cli/main/uninstall.bat -o "%TEMP%\gp-cli-uninstall.bat" && "%TEMP%\gp-cli-uninstall.bat"
+```
+
+두 Windows 스크립트 모두 바이너리(`%LOCALAPPDATA%\gp-cli\gp-cli.exe`), 설정 디렉터리(`%APPDATA%\patent-cli`), `PATH` 레지스트리 항목을 자동으로 제거합니다.
+
 ---
 
 ## 개발

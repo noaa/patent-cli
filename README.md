@@ -462,6 +462,36 @@ gp-cli update           # check and update automatically
 gp-cli update --check   # only print version info
 ```
 
+`gp-cli update` inherits the proxy and CA certificate settings from `gp-cli configure`, so it works correctly on corporate networks without any extra steps.
+
+---
+
+## Uninstall
+
+### macOS / Linux
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/noaa/patent-cli/main/uninstall.sh | sh
+```
+
+Removes the binary (`~/.local/bin/gp-cli`) and config directory. Prints a reminder to remove the `PATH` entry from `~/.zshrc` or `~/.bashrc`.
+
+### Windows
+
+**PowerShell:**
+
+```powershell
+irm https://raw.githubusercontent.com/noaa/patent-cli/main/uninstall.ps1 | iex
+```
+
+**Command Prompt (CMD):**
+
+```cmd
+curl -fsSL https://raw.githubusercontent.com/noaa/patent-cli/main/uninstall.bat -o "%TEMP%\gp-cli-uninstall.bat" && "%TEMP%\gp-cli-uninstall.bat"
+```
+
+Both Windows scripts remove the binary (`%LOCALAPPDATA%\gp-cli\gp-cli.exe`), config directory (`%APPDATA%\patent-cli`), and the `PATH` registry entry automatically.
+
 ---
 
 ## Development

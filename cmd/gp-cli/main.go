@@ -739,7 +739,8 @@ Examples:
 			fmt.Fprintf(os.Stderr, "Current version: %s\n", version)
 			fmt.Fprintf(os.Stderr, "Checking for updates...\n")
 
-			latestTag, err := updater.LatestTag()
+			opts := buildOpts(15 * time.Second)
+			latestTag, err := updater.LatestTag(opts)
 			if err != nil {
 				return fmt.Errorf("could not reach GitHub: %w", err)
 			}
@@ -756,7 +757,7 @@ Examples:
 				return nil
 			}
 
-			if err := updater.Do(latestTag); err != nil {
+			if err := updater.Do(latestTag, opts); err != nil {
 				return fmt.Errorf("update failed: %w", err)
 			}
 
