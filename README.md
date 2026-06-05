@@ -105,7 +105,7 @@ curl -fsSL https://github.com/noaa/patent-cli/releases/latest/download/install.s
 claude plugin marketplace add noaa/patent-cli
 
 # 3. Install the Claude Code plugin
-claude plugin install https://github.com/noaa/patent-cli
+claude plugin install patent-cli
 ```
 
 ### Available skills and MCP tools
