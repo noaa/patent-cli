@@ -91,4 +91,4 @@ All scripts install to a user-local directory (`~/.local/bin` on Unix, `%LOCALAP
 - **`--no-header` flag** (`lookup` command): omits the TSV header row; useful when appending rows from a loop: first call without `--no-header`, subsequent calls with `--no-header`.
 - **images filenames**: saved as `{PATENT_NUMBER}_fig01.png`, `{PATENT_NUMBER}_fig02.png`, … to avoid collisions when downloading figures from multiple patents into the same directory.
 - **GitHub repo constant**: hardcoded as `"noaa/patent-cli"` in `install.*` scripts and `internal/updater/updater.go`. Update all four locations when the repo is renamed.
-- **Version constant**: `const version = "0.1.0"` in `cmd/gp-cli/main.go`. The release workflow injects it at build time via `-ldflags "-X main.version=${{ github.ref_name }}"`.
+- **Version variable**: `var version = "0.1.3"` in `cmd/gp-cli/main.go`. The release workflow injects it at build time via `-ldflags "-X main.version=${{ github.ref_name }}"`. Must be `var` (not `const`) for ldflags to work.
