@@ -1,0 +1,38 @@
+## 결과
+
+### US12514139B2가 인용한 선행기술 특허 (backward citations) — 총 8건
+
+```
+US9265192B2
+US20170067869A1
+US20200404830A1
+US20200404833A1
+US20210007266A1
+US20210132028A1
+US20210195821A1
+US20230309437A1
+```
+
+### 후행 특허 (forward citations) — 0건
+
+조회 시점 기준으로 US12514139B2를 인용한 후속 특허는 아직 없습니다 (`forward_citations: []`).
+
+### 명령어 + jq 후처리 예시
+
+```sh
+go run ./cmd/gp-cli/ lookup US12514139B2 \
+  --fields backward_citations,forward_citations --format json \
+  | jq -r '.results.backward_citations[].publication_number'
+
+# 발행처(assignee)와 함께 보고 싶다면
+go run ./cmd/gp-cli/ lookup US12514139B2 \
+  --fields backward_citations --format json \
+  | jq -r '.results.backward_citations[] | [.publication_number, .assignee, .cited_by_examiner] | @tsv'
+
+# 후행 특허 건수만
+go run ./cmd/gp-cli/ lookup US12514139B2 \
+  --fields forward_citations --format json \
+  | jq '.results.forward_citations | length'
+```
+
+{"success": true, "commands": ["go run ./cmd/gp-cli/ fields", "go run ./cmd/gp-cli/ lookup US12514139B2 --fields backward_citations,forward_citations --format json"], "ax": "JSON 출력 구조가 일관되고 publication_number, assignee, cited_by_examiner 등 필드가 명확해 jq로 바로 파이프할 수 있어 편리했음. fields 명령으로 사용 가능한 필드명을 미리 확인할 수 있는 점도 좋았음", "suggestions": "forward_citations가 비어있을 때 '검색 시점' 타임스탬프를 응답에 포함하면 결과 신선도를 더 명확히 알 수 있을 것 같음"}

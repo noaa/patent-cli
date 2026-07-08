@@ -1,0 +1,258 @@
+[
+  {
+    "filing_date": "2010-09-20",
+    "country_code": "US",
+    "application_number": "US12/886,490",
+    "patent_number": "US8704863B2",
+    "legal_status_cat": "active",
+    "legal_status": "Active"
+  },
+  {
+    "filing_date": "2010-09-20",
+    "country_code": "US",
+    "application_number": "US12/886,479",
+    "patent_number": "US8423058B2",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-20",
+    "country_code": "US",
+    "application_number": "US12/886,485",
+    "patent_number": "US8725880B2",
+    "legal_status_cat": "active",
+    "legal_status": "Active"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "EP",
+    "application_number": "EP10773750.4A",
+    "patent_number": "EP2556639B1",
+    "legal_status_cat": "not_active",
+    "legal_status": "Not-in-force"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "BR",
+    "application_number": "BR112012025379A",
+    "patent_number": "BR112012025379A2",
+    "legal_status_cat": "not_active",
+    "legal_status": "Application Discontinuation"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "WO",
+    "application_number": "PCT/US2010/050066",
+    "patent_number": "WO2011126505A1",
+    "legal_status_cat": "not_active",
+    "legal_status": "Ceased"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "AU",
+    "application_number": "AU2010350744A",
+    "patent_number": "AU2010350744B2",
+    "legal_status_cat": "not_active",
+    "legal_status": "Ceased"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "MX",
+    "application_number": "MX2012011620A",
+    "patent_number": "MX2012011620A",
+    "legal_status_cat": "active",
+    "legal_status": "IP Right Grant"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "ES",
+    "application_number": "ES10763094.9T",
+    "patent_number": "ES2469852T3",
+    "legal_status_cat": "active",
+    "legal_status": "Active"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "BR",
+    "application_number": "BR112012025382-4A",
+    "patent_number": "BR112012025382B1",
+    "legal_status_cat": "active",
+    "legal_status": "IP Right Grant"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "AU",
+    "application_number": "AU2010350741A",
+    "patent_number": "AU2010350741B2",
+    "legal_status_cat": "not_active",
+    "legal_status": "Ceased"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "GB",
+    "application_number": "GB1217440.5A",
+    "patent_number": "GB2495814B",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "KR",
+    "application_number": "KR1020127028698A",
+    "patent_number": "KR101436225B1",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "EP",
+    "application_number": "EP10774026.8A",
+    "patent_number": "EP2556640B1",
+    "legal_status_cat": "active",
+    "legal_status": "Active"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "BR",
+    "application_number": "BR112012025358-1A",
+    "patent_number": "BR112012025358B1",
+    "legal_status_cat": "active",
+    "legal_status": "IP Right Grant"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "DE",
+    "application_number": "DE112010005457.6T",
+    "patent_number": "DE112010005457B4",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "MX",
+    "application_number": "MX2012011624A",
+    "patent_number": "MX2012011624A",
+    "legal_status_cat": "active",
+    "legal_status": "IP Right Grant"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "WO",
+    "application_number": "PCT/US2010/050064",
+    "patent_number": "WO2011126503A1",
+    "legal_status_cat": "not_active",
+    "legal_status": "Ceased"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "JP",
+    "application_number": "JP2013503723A",
+    "patent_number": "JP5596849B2",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "JP",
+    "application_number": "JP2013503725A",
+    "patent_number": "JP5791056B2",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "EP",
+    "application_number": "EP10763094.9A",
+    "patent_number": "EP2540052B1",
+    "legal_status_cat": "not_active",
+    "legal_status": "Not-in-force"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "JP",
+    "application_number": "JP2013503726A",
+    "patent_number": "JP5833098B2",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "CN",
+    "application_number": "CN201080066508.1A",
+    "patent_number": "CN102859962B",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "MX",
+    "application_number": "MX2012011622A",
+    "patent_number": "MX2012011622A",
+    "legal_status_cat": "active",
+    "legal_status": "IP Right Grant"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "AU",
+    "application_number": "AU2010350743A",
+    "patent_number": "AU2010350743B2",
+    "legal_status_cat": "not_active",
+    "legal_status": "Ceased"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "KR",
+    "application_number": "KR1020127028689A",
+    "patent_number": "KR101435309B1",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "CN",
+    "application_number": "CN201080066030.2A",
+    "patent_number": "CN102893572B",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "KR",
+    "application_number": "KR1020127028640A",
+    "patent_number": "KR101453640B1",
+    "legal_status_cat": "not_active",
+    "legal_status": "Expired - Fee Related"
+  },
+  {
+    "filing_date": "2010-09-23",
+    "country_code": "WO",
+    "application_number": "PCT/US2010/050067",
+    "patent_number": "WO2011126506A1",
+    "legal_status_cat": "not_active",
+    "legal_status": "Ceased"
+  },
+  {
+    "filing_date": "2010-09-24",
+    "country_code": "TW",
+    "application_number": "TW099132450A",
+    "patent_number": "TWI551112B",
+    "legal_status_cat": "not_active",
+    "legal_status": "IP Right Cessation"
+  },
+  {
+    "filing_date": "2013-04-10",
+    "country_code": "US",
+    "application_number": "US13/860,370",
+    "patent_number": "US8948797B2",
+    "legal_status_cat": "active",
+    "legal_status": "Active"
+  },
+  {
+    "filing_date": "2014-12-18",
+    "country_code": "US",
+    "application_number": "US14/575,093",
+    "patent_number": "US9577976B2",
+    "legal_status_cat": "active",
+    "legal_status": "Active"
+  }
+]

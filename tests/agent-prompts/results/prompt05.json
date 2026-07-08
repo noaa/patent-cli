@@ -1,0 +1,1 @@
+{"success": true, "commands": ["go run ./cmd/gp-cli/ images US11125686B2 --output-dir ./figures"], "ax": "images 명령에 --output-dir만 지정하면 특허번호가 파일명 접두어로 자동 포함되어 별도 정리 없이 바로 사용 가능했고, 진행 상황(1/10 등)이 stderr로 출력되어 확인하기 편했음", "suggestions": "images 명령 완료 후 저장된 폴더 경로와 총 파일 개수를 요약하는 한 줄 요약 메시지가 추가되면 스크립트에서 결과 검증이 더 쉬울 것 같음"}

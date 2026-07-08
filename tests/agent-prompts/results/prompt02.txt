@@ -1,0 +1,24 @@
+## 작업 결과
+
+`./family_pdfs/` 폴더에 다음을 저장했습니다.
+
+**PDF (4건 다운로드, 1건 스킵)**
+- `US9735861B2.pdf`
+- `EP3123456B1.pdf`
+- `KR102345678B1.pdf`
+- `JP6789012B2.pdf`
+- `CN109876543B` → 존재하지 않는 번호로 확인되어 (`NOT_FOUND`) 스킵
+
+**메타데이터 (제목·출원인·공개일)**
+파일 쓰기 권한 승인을 받지 못해 단일 통합 TSV 대신, gp-cli가 각 패턴번호별로 생성한 개별 TSV 파일(`US9735861B2.tsv`, `EP3123456B1.tsv`, `KR102345678B1.tsv`, `JP6789012B2.tsv`)을 결과물로 남겼습니다. 내용 요약:
+
+| 번호 | 제목 | 출원인 | 공개일 |
+|---|---|---|---|
+| US9735861B2 | Apparatus and method for processing bluetooth data in portable terminal | Samsung Electronics Co Ltd | 2017-08-15 |
+| EP3123456B1 | An arrangement, system and method for reducing the effect of interference at radio frequencies in an electronic price label system | MariElla Labels Oy | 2018-10-31 |
+| KR102345678B1 | 연성 회로 필름 및 이를 포함하는 표시 장치 | 삼성디스플레이 주식회사 | 2021-12-31 |
+| JP6789012B2 | 熱供給装置 | Rinnai Corp | 2020-11-25 |
+
+(통합 TSV 파일을 만들고 싶으시면 위 표 내용을 그대로 붙여 쓰시면 됩니다.)
+
+{"success": true, "commands": ["go run ./cmd/gp-cli/ download US9735861B2 --output-dir ./family_pdfs --delay 1200 -v", "go run ./cmd/gp-cli/ download EP3123456B1 --output-dir ./family_pdfs --delay 1200 -v", "go run ./cmd/gp-cli/ download KR102345678B1 --output-dir ./family_pdfs --delay 1200 -v", "go run ./cmd/gp-cli/ download JP6789012B2 --output-dir ./family_pdfs --delay 1200 -v", "go run ./cmd/gp-cli/ download CN109876543B --output-dir ./family_pdfs --delay 1200 -v", "go run ./cmd/gp-cli/ lookup US9735861B2 --fields title,assignee,publication_date --format tsv -o ./family_pdfs --quiet", "go run ./cmd/gp-cli/ lookup EP3123456B1 --fields title,assignee,publication_date --format tsv -o ./family_pdfs --quiet --no-header", "go run ./cmd/gp-cli/ lookup KR102345678B1 --fields title,assignee,publication_date --format tsv -o ./family_pdfs --quiet --no-header", "go run ./cmd/gp-cli/ lookup JP6789012B2 --fields title,assignee,publication_date --format tsv -o ./family_pdfs --quiet --no-header"], "ax": "download/lookup의 --output-dir, --fields, --delay, NOT_FOUND 에러 처리(exit 4)가 명확해서 누락 번호 스킵이 쉬웠음. 헷갈렸던 점: --input-file 벌크 lookup에 -o를 줘도 통합 TSV가 아니라 패턴별 개별 .tsv 파일이 생성되고, 도중에 NOT_FOUND가 나오면 전체가 비정상 종료됨(부분 결과는 유지되지만 에러로 보임). 또한 환경의 파일쓰기 샌드박스 정책 때문에 쉘 리다이렉션/Write 도구가 막혀 여러 파일을 하나의 TSV로 합치는 후처리가 불가능했음.", "suggestions": "1) lookup --input-file --output-dir 사용 시 패턴별 개별 파일이 아니라 하나의 합쳐진 TSV/JSON 파일(family_metadata.tsv 같은)을 생성하는 옵션을 추가하면 다건 조회 결과 정리가 훨씬 쉬워질 것 같음. 2) 벌크 모드에서 NOT_FOUND가 발생해도 나머지 항목은 계속 처리하고 마지막에 스킵된 목록을 요약해서 보여주면 좋겠음(현재는 전체가 에러로 종료됨). 3) download/lookup 동시 실행(예: --with-pdf 같은 플래그)으로 한 번의 명령으로 메타데이터+PDF를 함께 받을 수 있으면 패밀리 자료 수집 같은 작업이 더 간단해질 것."}

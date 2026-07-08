@@ -1,0 +1,9 @@
+US12514139B2 요약 (오전 미팅용):
+
+**제목**: Systems and methods for monitoring disc conditions of agricultural implements based on monitored sub-surface density profiles
+**출원인**: CNH Industrial America LLC
+**출원일**: 2022-05-31
+
+청구항 전문은 `./review/US12514139B2.txt` 에 저장했습니다 (나중에 검토용).
+
+{"success": true, "commands": ["go run ./cmd/gp-cli/ lookup US12514139B2 --fields title,assignee,filing_date --format tsv --no-header", "go run ./cmd/gp-cli/ lookup US12514139B2 --field claims --output-dir ./review"], "ax": "필드 이름이 정확히 맞아야 해서 'assignee_current' 같은 추측은 실패했고, 'gp-cli fields'로 정확한 필드명을 확인한 뒤에야 성공했음. --fields와 --format tsv --no-header 조합으로 한 줄 요약을 깔끔히 뽑을 수 있었고, --field claims --output-dir로 저장도 한 번에 처리되어 편리했음.", "suggestions": "lookup 에러 메시지에서 'Unknown field' 발생 시 비슷한 이름의 필드(예: assignee)를 제안해주면 좋겠음. 또한 --output-dir이 존재하지 않는 디렉토리를 자동 생성한다는 점을 문서에 명시하면 도움이 될 것 같음."}

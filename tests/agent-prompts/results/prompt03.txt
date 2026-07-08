@@ -1,0 +1,37 @@
+## 결과 요약
+
+**파일 저장 위치:** `./translated/KR102355140B1.json`
+
+### 제목 (영문)
+"Method and apparatus for three-dimensional optical tomography using partially coherent light and multiple illumination pattern"
+— 부분 가간섭광과 복수 조명 패턴을 이용한 3차원 광학 단층촬영 방법 및 장치
+
+### 초록 (영문)
+저-가간섭성 광원과 다중 패턴 조명을 이용한 3D 광학 회절 단층촬영(ODT) 방법/장치. 복수의 패턴으로 광원을 시편에 주입 → 서로 다른 깊이 위치에서 2D 영상 측정 → 측정된 2D 영상을 기반으로 시편의 3D 굴절률 정보를 복원하는 구성.
+
+### 청구항 구조 분석 (총 10개 청구항)
+
+번역 페이지라서 `type`(독립/종속) 및 `depends_on` 메타데이터가 비어 있지만, 본문 텍스트("The method of claim 1/8" 표현)를 토대로 추정한 구조는 다음과 같습니다:
+
+| 청구항 | 추정 유형 | 비고 |
+|---|---|---|
+| 1 | 독립항 (방법) | 3D ODT 방법의 핵심 청구항 — 패턴 결정 방식까지 포함 |
+| 2 | 종속항 (claim 1) | 광 전파부 추가 구성 |
+| 3 | **삭제(delete)** | 본문 없음 |
+| 4 | 종속항 (claim 1) | 투과/반사형 디스플레이 또는 패턴 기록 장치 사용 |
+| 5 | 종속항 (claim 1) | 고정 장치에 다른 각도로 입사하는 광원 사용 |
+| 6 | 종속항 (claim 1) | LED/마이크로 LED 어레이 일체형 구성 |
+| 7 | 종속항 (claim 1) | 진폭/위상 기반 3D PSF 계산 방식 |
+| 8 | 독립항 (장치) | 1항 방법에 대응하는 장치 청구항 |
+| 9 | 종속항 (claim 8) | 광 전파부 추가 구성 (장치 버전) |
+| 10 | **삭제(delete)** | 본문 없음 |
+
+### ⚠️ 번역 페이지로 인해 빠지는 정보
+
+CLI가 자동으로 두 가지 경고(`_warnings`)를 생성했습니다:
+1. **`TRANSLATED_PAGE_NO_TYPE_INFO`** — 번역된 페이지라서 `type`(독립/종속 구분)과 `depends_on`(부모 청구항 번호) 메타데이터가 원천적으로 제공되지 않음 (위 표는 본문 문맥으로 추정한 것이며 공식 메타데이터 아님).
+2. **`SUSPICIOUSLY_SHORT_CLAIM_TEXT`** — 청구항 3, 10번이 "delete"로만 표시되어 있어 (≤20자), 한국 특허청 원문에서는 보정/취하로 삭제된 청구항으로 보이며 번역 artifact일 가능성 있음 — 원문 대조 권장.
+
+원문(한국어) 페이지를 직접 조회해 `claims_structured`를 다시 받으면 정확한 `type`/`depends_on` 구조 데이터를 얻을 수 있습니다 (필요하시면 실행해 드릴 수 있습니다).
+
+{"success": true, "commands": ["go run ./cmd/gp-cli/ lookup KR102355140B1 --language en --fields title,abstract,claims_structured --output-dir ./translated"], "ax": "단일 명령으로 번역 페이지 조회, 필드 선택, 구조화된 청구항 추출, 파일 저장, 데이터 품질 경고(_warnings)까지 한 번에 처리되어 매우 매끄러웠음. 특히 번역 페이지에서 type/depends_on이 빠진다는 점과 짧은 텍스트(삭제된 청구항)를 자동으로 경고해주는 기능이 분석 신뢰도를 크게 높여줌.", "suggestions": "번역 페이지에서도 원문(한국어) 페이지의 claim-ref 메타데이터를 별도로 가져와 매핑할 수 있는 옵션(예: --merge-structure-from-original)이 있으면, 번역문 가독성과 구조 정확성을 동시에 얻을 수 있을 것 같음."}
